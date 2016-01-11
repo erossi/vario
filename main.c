@@ -33,19 +33,22 @@ void buzz_play(const uint16_t freq, const uint8_t duty)
 {
 	uint8_t c;
 
-	/* Fstep = 16Mhz / 256 = 62500hz
-	 * 40 step = 62500hz / 40 = 1562.5 hz (Ftop)
+	/* AtTiny 1Mhz CPU
+	 * Fstep = 1Mhz / 8 = 125Khz
+	 * c = Fstep(hz)/freq(hz)
+	 * to play a 4Khz wave it has to count:
+	 * c = 125Khz/4Khz = 31.25 steps
 	 *                    _         _
 	 * Duty 90% = _______| |_______| |
 	 *            COMPB--^ ^--OVF
 	 */
-	c = (uint8_t)(62500/freq);
+	c = (uint8_t)(125000/freq);
 	OCR0A = c;
 	OCR0B = (uint8_t)(c*duty/100);
 	/* Clear counter */
 	TCNT0 = 0x00;
-	/* prescaler 256 */
-	TCCR0B |= _BV(CS02);
+	/* prescaler 8 */
+	TCCR0B |= _BV(CS01);
 }
 
 void buzz_stop(void)
@@ -86,7 +89,7 @@ void beep(uint16_t tone)
 {
 	uint8_t i;
 
-	buzz_play(tone, 20);
+	buzz_play(tone, 50);
 	i = (uint8_t)((3000-tone)/10);
 	i++;
 
