@@ -18,13 +18,25 @@ OPTLEV = s
 
 ## Microcontroller definition
 #
-MCU = attiny25
-FCPU = 1000000UL
+# use make PLATFORM=arduino to compile for arduino
+#
+ifeq ($(PLATFORM), arduino)
+	MCU = atmega328p
+	FCPU = 16000000UL
+else
+	MCU = attiny25
+	FCPU = 1000000UL
+endif
 
 PWD = $(shell pwd)
 INC = -I/usr/lib/avr/include/
 
-CFLAGS = $(INC) -Wall -Wstrict-prototypes -pedantic -mmcu=$(MCU) -O$(OPTLEV) -D F_CPU=$(FCPU)
+CFLAGS := $(INC) -Wall -Wstrict-prototypes -pedantic -mmcu=$(MCU) -O$(OPTLEV) -D F_CPU=$(FCPU)
+
+ifeq ($(PLATFORM), arduino)
+	CFLAGS += -D ARDUINO
+endif
+
 LFLAGS = -lm
 
 # Uncomment if git is in use
@@ -79,13 +91,16 @@ all: $(all_obj)
 ## Programming part
 #
 arduino:
-	$(DUDE) -c $(DUDEADEV) -P $(DUDEAPORT)
 
 programstk:
 	$(DUDE) -c $(DUDESDEV) -P $(DUDESPORT)
 
 program:
+ifeq ($(PLATFORM), arduino)
+	$(DUDE) -c $(DUDEADEV) -P $(DUDEAPORT)
+else
 	$(DUDE) -c $(DUDEUDEV) -P $(DUDEUPORT)
+endif
 
 ## CleanUp and tools
 #

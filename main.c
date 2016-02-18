@@ -29,31 +29,63 @@ ISR(TIMER0_OVF_vect) {
         beeps--;
 }
 
+
+/*! Play a tone with the buzzer.
+ *
+ * Using the counter we have:
+ * FCPU the cpu speed
+ * Prescaler = the counter prescaler
+ *
+ * Fstep the frequency of a single step of the counter.
+ * Fstep = FCPU / Prescaler
+ *
+ * c is the number of steps of the counter to get to the desired frequency.
+ * c = Fstep(hz)/freq(hz)
+ *
+ * Example for arduino 16Mhz CPU
+ * Prescaler = 256
+ * Fstep 62.5 Khz
+ * to play a 4 Khz wave it has to count:
+ * c = 62.5Khz/4Khz = 15.6 steps
+ *
+ * Example for AtTiny 1Mhz CPU
+ * Prescaler = 8
+ * Fstep = 125Khz
+ * to play a 4Khz wave it has to count:
+ * c = 125Khz/4Khz = 31.25 steps
+ *                    _         _
+ * Duty 90% = _______| |_______| |
+ *            COMPB--^ ^--OVF
+ *
+ * @param freq Frequenzy in Hz
+ * @param duty the duty cycle in % (0-100)
+ */
 void buzz_play(const uint16_t freq, const uint8_t duty)
 {
 	uint8_t c;
 
-	/* AtTiny 1Mhz CPU
-	 * Fstep = 1Mhz / 8 = 125Khz
-	 * c = Fstep(hz)/freq(hz)
-	 * to play a 4Khz wave it has to count:
-	 * c = 125Khz/4Khz = 31.25 steps
-	 *                    _         _
-	 * Duty 90% = _______| |_______| |
-	 *            COMPB--^ ^--OVF
-	 */
+#ifdef ARDUINO
+	c = (uint8_t)(62500/freq);
+	OCR0A = c;
+	OCR0B = (uint8_t)(c*duty/100);
+	/* Clear counter */
+	TCNT0 = 0x00;
+	/* prescaler */
+	TCCR0B |= _BV(CS02);
+#else
 	c = (uint8_t)(125000/freq);
 	OCR0A = c;
 	OCR0B = (uint8_t)(c*duty/100);
 	/* Clear counter */
 	TCNT0 = 0x00;
-	/* prescaler 8 */
+	/* prescaler */
 	TCCR0B |= _BV(CS01);
+#endif
 }
 
+/*! stop the counter, leave the WGM set */
 void buzz_stop(void)
 {
-	/* stop the counter, leave the WGM set */
 	TCCR0B = _BV(WGM02);
 }
 
@@ -61,28 +93,51 @@ void buzz_stop(void)
  * the Data Direction Register (DDR) bit corresponding to
  * the OC0A and OC0B pins must be set in order to enable the
  * output driver.
+ *
+ * On Arduino:
+ * OC0A PD6
+ * OC0B PD5
+ *
+ * On AtTiny:
+ * OC0A PB0
+ * OC0B PB1
  */
 void buzz_init(void)
 {
-	/* OC0A PB0
-	 * OC0B PB1
-	 */
+#ifdef ARDUINO
+	DDRD |= _BV(PD5);
+	TCCR0A = _BV(COM0B1) | _BV(COM0B0) | _BV(WGM01) | _BV(WGM00);
+	TCCR0B = _BV(WGM02);
+	/* Ena IRQ Compare Match B and Overflow */
+	/* TIMSK0 = _BV(OCIE0B) | _BV(TOIE0);
+	*/
+#else
 	DDRB |= _BV(PB1);
 	TCCR0A = _BV(COM0B1) | _BV(COM0B0) | _BV(WGM01) | _BV(WGM00);
 	TCCR0B = _BV(WGM02);
 	/* Ena IRQ Compare Match B and Overflow */
 	/* TIMSK = _BV(OCIE0B) | _BV(TOIE0);
 	 */
+#endif
 }
 
 void buzz_shut(void)
 {
+#ifdef ARDUINO
+        TIMSK0 = 0;
+        TCCR0B = 0;
+        TCCR0A = 0;
+        OCR0A = 0;
+        OCR0B = 0;
+        DDRD &= ~_BV(PD5);
+#else
 	TIMSK = 0;
 	TCCR0B = 0;
 	TCCR0A = 0;
 	OCR0A = 0;
 	OCR0B = 0;
 	DDRB &= ~_BV(PB1);
+#endif
 }
 
 void beep(uint16_t tone)
