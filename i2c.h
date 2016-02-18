@@ -20,6 +20,8 @@
 #ifndef I2C_DEF
 #define I2C_DEF
 
+#include <stdint.h>
+
 #define START 1
 #define STOP 2
 #define SLA 3

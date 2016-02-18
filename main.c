@@ -18,6 +18,7 @@
 #include <avr/interrupt.h>
 #include <avr/io.h>
 #include <util/delay.h>
+#include "lps25.h"
 
 volatile uint8_t beeps;
 
@@ -169,6 +170,9 @@ int main(void)
 	uint16_t tone;
 
 	buzz_init();
+
+	if (lps25_init())
+		beep(2000);
 
 	while(1) {
 		for (i=0; i<20; i++) {
