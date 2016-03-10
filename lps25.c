@@ -17,11 +17,27 @@
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
 */
 
-#include "i2c.h"
+#include <util/delay.h>
+#include "lps25.h"
 
 uint8_t lps25_init(void)
 {
-	return(TRUE);
+	uint8_t err, buffer;
+
+	i2c_init();
+	_delay_ms(1);
+	i2c_gc(I2C_GC_RESET);
+	buffer = LPS25_R_WHO_AM_I;
+
+	err = i2c_mtm(LPS25_ADDR, 1, &buffer, FALSE);
+
+	if (!err)
+		err = i2c_mrm(LPS25_ADDR, 1, &buffer, TRUE);
+
+	if (!err && (buffer == 0xbd))
+		return(TRUE);
+	else
+		return(FALSE);
 }
 
 void lps25_shut(void)

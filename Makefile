@@ -16,6 +16,9 @@
 PRG_NAME = vario
 OPTLEV = s
 
+#default to arduino for now
+PLATFORM = arduino
+
 ## Microcontroller definition
 #
 # use make PLATFORM=arduino to compile for arduino
@@ -69,7 +72,7 @@ SIZE = avr-size --format=avr --mcu=$(MCU) $(PRGNAME).elf
 
 REMOVE = rm -f
 
-all_obj = i2c.o lps25.o
+all_obj = i2c.o lps25.o buzz.o uart.o
 test_all_obj =
 
 # CFLAGS += -D USE_USART1
@@ -87,10 +90,6 @@ test_all_obj =
 all: $(all_obj)
 	$(CC) $(CFLAGS) -o $(PRGNAME).elf main.c $(all_obj) $(LFLAGS)
 	$(OBJCOPY) $(PRGNAME).elf $(PRGNAME).hex
-
-## Programming part
-#
-arduino:
 
 programstk:
 	$(DUDE) -c $(DUDESDEV) -P $(DUDESPORT)

@@ -15,30 +15,12 @@
  * If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "lps25.h"
-#include "buzz.h"
-#include "uart.h"
+/*! Globals
+ */
+volatile uint8_t beeps;
 
-int main(void)
-{
-	uint8_t i;
-	uint16_t tone;
-
-	uart_init(0);
-        uart_printstr(0, "Vario test software.\n");
-	buzz_init();
-
-	if (lps25_init())
-		beep(2500);
-
-	while(1) {
-		/*
-		for (i=0; i<20; i++) {
-			tone = (uint16_t)(1000+i*100);
-			beep(tone);
-		}
-		*/
-	}
-
-	return(0);
-}
+void buzz_play(const uint16_t freq, const uint8_t duty);
+void buzz_stop(void);
+void buzz_init(void);
+void buzz_shut(void);
+void beep(uint16_t tone);

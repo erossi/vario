@@ -20,12 +20,15 @@
 #ifndef _LPS25_h_
 #define _LPS25_h_
 
+#include "i2c.h"
+
 /*
  * addr = 0b101110x[r/w]
  * x = SA0 pin
+ * add = 0xb8 or 0xba
  */
 
-#define LPS25_ADDR 0xb8
+#define LPS25_ADDR 0xba
 
 /* Registers */
 #define LPS25_R_REF_P_XL 0x08
