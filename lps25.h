@@ -55,14 +55,17 @@
 #define LPS25_R_RPDS_L 0x39
 #define LPS25_R_RPDS_H 0x3A
 
+/* bit */
+#define LPS25_B_PD 7
+
 #ifndef TRUE
 #define TRUE 1
 #define FALSE 0
 #endif
 
 uint8_t lps25_init(void);
-void lpslps25_25_shut(void);
-void lpslps25_25_suspend(void);
-void lps25_resume(void);
+uint8_t lpslps25_25_shut(void);
+uint8_t lpslps25_25_suspend(void);
+uint8_t lps25_resume(void);
 
 #endif
