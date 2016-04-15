@@ -63,6 +63,16 @@
 #define FALSE 0
 #endif
 
+struct lps25_t {
+	float temperature;
+	float dHpa;
+	float Hpa;
+	unsigned int altitude;
+};
+
+/* globals */
+volatile struct lps25_t *lps25;
+
 uint8_t lps25_init(void);
 uint8_t lpslps25_25_shut(void);
 uint8_t lpslps25_25_suspend(void);
