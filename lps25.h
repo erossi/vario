@@ -71,11 +71,13 @@ struct lps25_t {
 };
 
 /* globals */
-volatile struct lps25_t *lps25;
+struct lps25_t *lps25;
 
 uint8_t lps25_init(void);
 uint8_t lpslps25_25_shut(void);
 uint8_t lpslps25_25_suspend(void);
 uint8_t lps25_resume(void);
+uint8_t lps25_temperature(void);
+void lps25_fifo_mean_mode(void);
 
 #endif

@@ -15,29 +15,50 @@
  * If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <stdlib.h>
+#include <util/delay.h>
 #include "lps25.h"
 #include "buzz.h"
-#include "uart.h"
+#include "debug.h"
+
+void print_lps25(void)
+{
+	debug_print_P(PSTR("Hpa: "));
+	debug->buffer = dtostrf(lps25->Hpa, 5, 2, debug->buffer);
+	debug_print(NULL);
+	debug_print_P(PSTR("\n"));
+	debug_print_P(PSTR("dHpa: "));
+	debug->buffer = dtostrf(lps25->dHpa, 5, 2, debug->buffer);
+	debug_print(NULL);
+	debug_print_P(PSTR("\n"));
+	debug_print_P(PSTR("Alt: "));
+	debug->buffer = dtostrf(lps25->altitude, 5, 2, debug->buffer);
+	debug_print(NULL);
+	debug_print_P(PSTR("\n"));
+	debug_print_P(PSTR("Temp: "));
+	debug->buffer = dtostrf(lps25->temperature, 3, 2, debug->buffer);
+	debug_print(NULL);
+	debug_print_P(PSTR("\n"));
+}
 
 int main(void)
 {
 	uint8_t i;
 	uint16_t tone;
 
-	uart_init(0);
-        uart_printstr(0, "Vario test software.\n");
+	debug_init();
 	buzz_init();
 
 	if (lps25_init())
 		beep(2500);
 
+	lps25_fifo_mean_mode();
+	lps25_resume();
+
 	while(1) {
-		/*
-		for (i=0; i<20; i++) {
-			tone = (uint16_t)(1000+i*100);
-			beep(tone);
-		}
-		*/
+		lps25_temperature();
+		print_lps25();
+		_delay_ms(500);
 	}
 
 	return(0);

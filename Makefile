@@ -72,7 +72,7 @@ SIZE = avr-size --format=avr --mcu=$(MCU) $(PRGNAME).elf
 
 REMOVE = rm -f
 
-all_obj = i2c.o lps25.o buzz.o uart.o
+all_obj = i2c.o lps25.o buzz.o usart.o debug.o
 test_all_obj =
 
 # CFLAGS += -D USE_USART1

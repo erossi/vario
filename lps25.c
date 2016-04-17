@@ -17,6 +17,7 @@
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
 */
 
+#include <stdlib.h>
 #include <avr/io.h>
 #include <util/delay.h>
 #include "lps25.h"
@@ -45,6 +46,45 @@ uint8_t register_write(uint8_t reg, const uint8_t value)
 
 	if (!err)
 		err = i2c_mtm(LPS25_ADDR, 1, (uint8_t *) &value, TRUE);
+
+	return(err);
+}
+
+/* Setup the FIFO in FIFO mean mode.
+ *
+ * Config as per datasheet.
+ * RES_CONF (10h) = 05h
+ * FIFO_CTRL (2Eh) = C0
+ * CTRL_REG2 (21h) = 40h
+ *
+ */
+void lps25_fifo_mean_mode(void)
+{
+	register_write(LPS25_R_RES_CONF, 0x05);
+	register_write(LPS25_R_FIFO_CTRL, 0xc0);
+	register_write(LPS25_R_CTRL_REG2, 0x40);
+}
+
+/* Update the temperature.
+ *
+ */
+uint8_t lps25_temperature(void)
+{
+	int16_t temp_out;
+	uint8_t byte, err;
+
+	err = register_read(LPS25_R_TEMP_OUT_H, &byte);
+
+	if (!err) {
+		temp_out = (byte << 8);
+		err = register_read(LPS25_R_TEMP_OUT_L, &byte);
+		temp_out |= byte;
+	}
+
+	if (!err)
+		lps25->temperature = 42.5 + (temp_out / 480);
+	else
+		lps25->temperature = -99;
 
 	return(err);
 }
@@ -95,6 +135,7 @@ uint8_t lps25_init(void)
 {
 	uint8_t err, buffer;
 
+	lps25 = malloc(sizeof(struct lps25_t));
 	lps25->temperature = -99;
 	lps25->Hpa = 0;
 	lps25->dHpa = 0;
@@ -113,44 +154,6 @@ uint8_t lps25_init(void)
 
 uint8_t lps25_shut(void)
 {
+	free(lps25);
 	return(lps25_suspend());
-}
-
-/* Setup the FIFO in FIFO mean mode.
- *
- * Config as per datasheet.
- * RES_CONF (10h) = 05h
- * FIFO_CTRL (2Eh) = C0
- * CTRL_REG2 (21h) = 40h
- *
- */
-void lps25_fifo_mean_mode(void)
-{
-	register_write(LPS25_R_RES_CONF, 0x05);
-	register_write(LPS25_R_FIFO_CTRL, 0xc0);
-	register_write(LPS25_R_CTRL_REG2, 0x40);
-}
-
-/* Update the temperature.
- *
- */
-uint8_t lps25_temperature(void)
-{
-	int16_t temp_out;
-	uint8_t byte, err;
-
-	err = register_read(LPS25_R_TEMP_OUT_H, &byte);
-
-	if (!err) {
-		temp_out = (byte << 8);
-		err = register_read(LPS25_R_TEMP_OUT_L, &byte);
-		temp_out |= byte;
-	}
-
-	if (!err)
-		lps25->temperature = 42.5 + (temp_out / 480);
-	else
-		lps25->temperature = -99;
-
-	return(err);
 }
