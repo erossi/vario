@@ -57,6 +57,28 @@
 
 /* bit */
 #define LPS25_B_PD 7
+/* Register RES_CONF */
+#define LPS25_B_AVGP0 0
+#define LPS25_B_AVGP1 1
+#define LPS25_B_AVGT0 2
+#define LPS25_B_AVGT1 3
+/* Register CTRL_REG2 */
+#define LPS25_B_ONE_SHOT 0
+#define LPS25_B_AUTO_ZERO 1
+#define LPS25_B_SWRESET	2
+#define LPS25_B_FIFO_MEAN_DEC 4
+#define LPS25_B_WTM_EN 5
+#define LPS25_B_FIFO_EN 6
+#define LPS25_B_BOOT 7
+/* Register FIFO_CTRL */
+#define LPS25_B_WTM_POINT0 0
+#define LPS25_B_WTM_POINT1 1
+#define LPS25_B_WTM_POINT2 2
+#define LPS25_B_WTM_POINT3 3
+#define LPS25_B_WTM_POINT4 4
+#define LPS25_B_F_MODE0 5
+#define LPS25_B_F_MODE1 6
+#define LPS25_B_F_MODE2 7
 
 #ifndef TRUE
 #define TRUE 1
@@ -65,9 +87,11 @@
 
 struct lps25_t {
 	float temperature;
-	float dHpa;
+	uint8_t PRESS_OUT_XL;
+	uint8_t PRESS_OUT_L;
+	uint8_t PRESS_OUT_H;
 	float Hpa;
-	unsigned int altitude;
+	float dHpa;
 };
 
 /* globals */

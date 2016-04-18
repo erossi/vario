@@ -53,16 +53,32 @@ uint8_t register_write(uint8_t reg, const uint8_t value)
 /* Setup the FIFO in FIFO mean mode.
  *
  * Config as per datasheet.
+ *
  * RES_CONF (10h) = 05h
- * FIFO_CTRL (2Eh) = C0
+ *  Pressure 32 sample average,
+ *  Temperature 16 sample average.
+ *
+ * FIFO_CTRL (2Eh) = C0h
  * CTRL_REG2 (21h) = 40h
  *
  */
 void lps25_fifo_mean_mode(void)
 {
-	register_write(LPS25_R_RES_CONF, 0x05);
-	register_write(LPS25_R_FIFO_CTRL, 0xc0);
-	register_write(LPS25_R_CTRL_REG2, 0x40);
+	register_write(LPS25_R_RES_CONF,
+			((1<<LPS25_B_AVGT0) | (1<<LPS25_B_AVGP0)));
+	register_write(LPS25_R_FIFO_CTRL,
+			((1<<LPS25_B_F_MODE1) | (1<<LPS25_B_F_MODE2)));
+	register_write(LPS25_R_CTRL_REG2,
+			(1<<LPS25_B_FIFO_EN));
+}
+
+/*! Set the fifo mean mode watermark
+ *
+ * Watermark represent the number of elements used
+ * to calculate the average in the fifo mean mode.
+ */
+void set_watermark(void)
+{
 }
 
 /* Update the temperature.
@@ -126,6 +142,54 @@ uint8_t lps25_resume(void)
 		err = register_write(LPS25_R_CTRL_REG1, buffer);
 
 	return(!err);
+}
+
+/*! Set the temperature resolution mode to 64.
+ *
+ * See Table 17. Temperature resolution configuration
+ */
+uint8_t temperature_init(void)
+{
+	uint8_t err, buffer;
+
+	err = register_read(LPS25_R_RES_CONF, &buffer);
+	buffer |= (1<<LPS25_B_AVGT0) | (1<<LPS25_B_AVGT1);
+
+	if (!err)
+		err = register_write(LPS25_R_RES_CONF, buffer);
+
+	return(err);
+}
+
+/*!
+ * See Table 16. Pressure resolution configuration
+ */
+uint8_t pressure_init(void)
+{
+	uint8_t err, buffer;
+
+	err = register_read(LPS25_R_RES_CONF, &buffer);
+	buffer |= (1<<LPS25_B_AVGP0) | (1<<LPS25_B_AVGP1);
+
+	if (!err)
+		err = register_write(LPS25_R_RES_CONF, buffer);
+
+	return(err);
+}
+
+/*! Initiate a one shot sample
+ */
+uint8_t one_shot(void)
+{
+	uint8_t err, buffer;
+
+	err = register_read(LPS25_R_CTRL_REG2, &buffer);
+	buffer |= (1<<LPS25_B_ONE_SHOT);
+
+	if (!err)
+		err = register_write(LPS25_R_CTRL_REG2, buffer);
+
+	return(err);
 }
 
 /* Initialize the device and clear the struct.
