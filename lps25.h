@@ -31,6 +31,7 @@
 #define LPS25_ADDR 0xba
 
 /* Registers */
+#define LPS25_R_REF_P 0x08
 #define LPS25_R_REF_P_XL 0x08
 #define LPS25_R_REF_P_L 0x09
 #define LPS25_R_REF_P_H 0x0A
@@ -43,15 +44,19 @@
 #define LPS25_R_INTERRUPT_CFG 0x24
 #define LPS25_R_INT_SOURCE 0x25
 #define LPS25_R_STATUS_REG 0x27
+#define LPS25_R_PRESS_OUT 0x28
 #define LPS25_R_PRESS_OUT_XL 0x28
 #define LPS25_R_PRESS_OUT_L 0x29
 #define LPS25_R_PRESS_OUT_H 0x2A
+#define LPS25_R_TEMP_OUT 0x2B
 #define LPS25_R_TEMP_OUT_L 0x2B
 #define LPS25_R_TEMP_OUT_H 0x2C
 #define LPS25_R_FIFO_CTRL 0x2E
 #define LPS25_R_FIFO_STATUS 0x2F
+#define LPS25_R_THS_P 0x30
 #define LPS25_R_THS_P_L 0x30
 #define LPS25_R_THS_P_H 0x31
+#define LPS25_R_RPDS 0x39
 #define LPS25_R_RPDS_L 0x39
 #define LPS25_R_RPDS_H 0x3A
 
@@ -87,11 +92,10 @@
 
 struct lps25_t {
 	float temperature;
-	uint8_t PRESS_OUT_XL;
-	uint8_t PRESS_OUT_L;
-	uint8_t PRESS_OUT_H;
 	float Hpa;
 	float dHpa;
+	uint8_t *TEMP_OUT;
+	uint8_t *PRESS_OUT;
 };
 
 /* globals */
@@ -102,6 +106,9 @@ uint8_t lpslps25_25_shut(void);
 uint8_t lpslps25_25_suspend(void);
 uint8_t lps25_resume(void);
 uint8_t lps25_temperature(void);
+uint8_t lps25_oneshot(void);
 void lps25_fifo_mean_mode(void);
+uint8_t lps25_regset_check(uint8_t reg, uint8_t *value);
+uint8_t lps25_dump_all(uint8_t *memory);
 
 #endif

@@ -16,6 +16,7 @@
  */
 
 #include <stdlib.h>
+#include <stdio.h>
 #include <util/delay.h>
 #include "lps25.h"
 #include "buzz.h"
@@ -31,34 +32,71 @@ void print_lps25(void)
 	debug->buffer = dtostrf(lps25->dHpa, 5, 2, debug->buffer);
 	debug_print(NULL);
 	debug_print_P(PSTR("\n"));
-	debug_print_P(PSTR("Alt: "));
-	debug->buffer = dtostrf(lps25->altitude, 5, 2, debug->buffer);
-	debug_print(NULL);
-	debug_print_P(PSTR("\n"));
 	debug_print_P(PSTR("Temp: "));
 	debug->buffer = dtostrf(lps25->temperature, 3, 2, debug->buffer);
 	debug_print(NULL);
 	debug_print_P(PSTR("\n"));
+	debug_print_P(PSTR("Reg PRESSOUT: "));
+	sprintf(debug->buffer, "%#02x", lps25->PRESS_OUT[0]);
+	debug_print(NULL);
+	sprintf(debug->buffer, "%02x", lps25->PRESS_OUT[1]);
+	debug_print(NULL);
+	sprintf(debug->buffer, "%02x\n", lps25->PRESS_OUT[2]);
+	debug_print(NULL);
+	debug_print_P(PSTR("Reg TEMPOUT: "));
+	sprintf(debug->buffer, "%#02x", lps25->TEMP_OUT[0]);
+	debug_print(NULL);
+	sprintf(debug->buffer, "%02x\n", lps25->TEMP_OUT[1]);
+	debug_print(NULL);
+	debug_print_P(PSTR("\n"));
+}
+
+void dump_all(void)
+{
+	uint8_t *memory;
+	uint8_t i;
+
+	memory = malloc(0x80);
+
+	if (lps25_dump_all(memory)) {
+		debug_print_P(PSTR("ERROR\n"));
+	} else {
+		for (i=0x8; i<0x3b; i++) {
+			sprintf(debug->buffer, "%#02x: %#02x %#02x\n", i, memory[i], memory[i+0x40]);
+			debug_print(NULL);
+		}
+	}
+
+	free(memory);
 }
 
 int main(void)
 {
-	uint8_t i;
-	uint16_t tone;
-
 	debug_init();
 	buzz_init();
 
-	if (lps25_init())
+	if (!lps25_init())
 		beep(2500);
 
+	if (lps25_oneshot())
+		debug_print_P(PSTR("ERROR\n"));
+	else
+		print_lps25();
+	/*
 	lps25_fifo_mean_mode();
 	lps25_resume();
+	*/
 
 	while(1) {
-		lps25_temperature();
-		print_lps25();
-		_delay_ms(500);
+		/*
+		if (lps25_oneshot())
+			debug_print_P(PSTR("ERROR\n"));
+		else
+			print_lps25();
+
+		dump_all();
+		*/
+		_delay_ms(10000);
 	}
 
 	return(0);

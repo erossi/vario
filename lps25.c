@@ -22,22 +22,34 @@
 #include <util/delay.h>
 #include "lps25.h"
 
-/* Read a register.
+/*! Read registers.
  *
+ * One or more registers can be read.
+ *
+ * \param reg the register address.
+ * \param buffer the content read.
+ * \size how many byte to read.
  * \return TRUE = error.
+ * \note to actually read more than one register, the MSB of the
+ * register's address must be set.
  */
-uint8_t register_read(uint8_t reg, uint8_t *buffer)
+uint8_t register_read(uint8_t reg, uint8_t *buffer, uint8_t size)
 {
 	uint8_t err;
+
+	/* assert the MSB if more than one register */
+	if (size > 1)
+		reg |= (1<<7);
 
 	err = i2c_mtm(LPS25_ADDR, 1, &reg, FALSE);
 
 	if (!err)
-		err = i2c_mrm(LPS25_ADDR, 1, buffer, TRUE);
+		err = i2c_mrm(LPS25_ADDR, size, buffer, TRUE);
 
 	return(err);
 }
 
+/*! Write a single register */
 uint8_t register_write(uint8_t reg, const uint8_t value)
 {
 	uint8_t err;
@@ -83,24 +95,48 @@ void set_watermark(void)
 
 /* Update the temperature.
  *
+ * Read((u8*)pu8, TEMP_OUT_ADDR, 2); // @0x2B(OUT_L)~0x2C(OUT_H)
+ * Temp_Reg_s16 = ((u16) pu8[1]<<8) | pu8[0]; // make a SIGNED 16 bit variable
+ * Temperature_DegC = 42.5 + Temp_Reg_s16 / 480; // offset and scale
  */
 uint8_t lps25_temperature(void)
 {
 	int16_t temp_out;
-	uint8_t byte, err;
+	uint8_t err;
 
-	err = register_read(LPS25_R_TEMP_OUT_H, &byte);
+	err = register_read(LPS25_R_TEMP_OUT, lps25->TEMP_OUT, 2);
 
 	if (!err) {
-		temp_out = (byte << 8);
-		err = register_read(LPS25_R_TEMP_OUT_L, &byte);
-		temp_out |= byte;
+		temp_out = ((uint16_t)lps25->TEMP_OUT[1] << 8) | (uint16_t)lps25->TEMP_OUT[0];
+		lps25->temperature = 42.5 + (temp_out / 480);
+	} else {
+		lps25->temperature = -99;
 	}
 
-	if (!err)
-		lps25->temperature = 42.5 + (temp_out / 480);
-	else
-		lps25->temperature = -99;
+	return(err);
+}
+
+/*
+ * Read((u8*)pu8, PRESS_OUT_ADDR, 3); // @0x28(OUT_XL)~0x29(OUT_L)~0x2A(OUT_H)
+ * Pressure_Reg_s32 = ((u32)pu8[2]<<16)|((u32)pu8[1]<<8)|pu8[0]; // make a SIGNED 32 bit
+ * Pressure_mb = Pressure_Reg_s32 / 4096; // scale
+ *
+ * 7. Check the temperature and pressure values make sense
+ * Reading fixed 760 hPa, means the sensing element is damaged.
+ */
+uint8_t lps25_pressure(void)
+{
+	int32_t hpout;
+	uint8_t err;
+
+	err = register_read(LPS25_R_PRESS_OUT, lps25->PRESS_OUT, 3);
+
+	if (!err) {
+		hpout = ((int32_t)lps25->PRESS_OUT[2] << 16) | ((int32_t)lps25->PRESS_OUT[1] << 8) | (int32_t)lps25->PRESS_OUT[0];
+		lps25->Hpa = hpout / 4096;
+	} else {
+		lps25->Hpa = 0;
+	}
 
 	return(err);
 }
@@ -114,7 +150,7 @@ uint8_t lps25_suspend(void)
 {
 	uint8_t err, buffer;
 
-	err = register_read(LPS25_R_CTRL_REG1, &buffer);
+	err = register_read(LPS25_R_CTRL_REG1, &buffer, 1);
 	/* PD bit = 0 */
 	buffer &= ~_BV(LPS25_B_PD);
 
@@ -133,7 +169,7 @@ uint8_t lps25_resume(void)
 	uint8_t err, buffer;
 
 	/* Read the register */
-	err = register_read(LPS25_R_CTRL_REG1, &buffer);
+	err = register_read(LPS25_R_CTRL_REG1, &buffer, 1);
 	/* PD bit = 1 */
 	buffer |= _BV(LPS25_B_PD);
 
@@ -152,7 +188,7 @@ uint8_t temperature_init(void)
 {
 	uint8_t err, buffer;
 
-	err = register_read(LPS25_R_RES_CONF, &buffer);
+	err = register_read(LPS25_R_RES_CONF, &buffer, 1);
 	buffer |= (1<<LPS25_B_AVGT0) | (1<<LPS25_B_AVGT1);
 
 	if (!err)
@@ -168,26 +204,11 @@ uint8_t pressure_init(void)
 {
 	uint8_t err, buffer;
 
-	err = register_read(LPS25_R_RES_CONF, &buffer);
+	err = register_read(LPS25_R_RES_CONF, &buffer, 1);
 	buffer |= (1<<LPS25_B_AVGP0) | (1<<LPS25_B_AVGP1);
 
 	if (!err)
 		err = register_write(LPS25_R_RES_CONF, buffer);
-
-	return(err);
-}
-
-/*! Initiate a one shot sample
- */
-uint8_t one_shot(void)
-{
-	uint8_t err, buffer;
-
-	err = register_read(LPS25_R_CTRL_REG2, &buffer);
-	buffer |= (1<<LPS25_B_ONE_SHOT);
-
-	if (!err)
-		err = register_write(LPS25_R_CTRL_REG2, buffer);
 
 	return(err);
 }
@@ -203,21 +224,75 @@ uint8_t lps25_init(void)
 	lps25->temperature = -99;
 	lps25->Hpa = 0;
 	lps25->dHpa = 0;
-	lps25->altitude = 0;
+
+	lps25->TEMP_OUT = malloc(2);
+	lps25->PRESS_OUT = malloc(3);
 
 	i2c_init();
 	_delay_ms(1);
 	i2c_gc(I2C_GC_RESET);
-	err = register_read(LPS25_R_WHO_AM_I, &buffer);
+	err = register_read(LPS25_R_WHO_AM_I, &buffer, 1);
 
-	if (!err && (buffer == 0xbd))
-		return(TRUE);
-	else
-		return(FALSE);
+	if (!err && (buffer != 0xbd))
+		err = 0xff;
+
+	/* reset */
+	err = err || register_write(LPS25_R_CTRL_REG2,
+			_BV(LPS25_B_BOOT) | _BV(LPS25_B_SWRESET));
+
+	while (buffer) {
+		register_read(LPS25_R_CTRL_REG2, &buffer, 1);
+		buffer &= _BV(LPS25_B_BOOT);
+	}
+
+	return(err);
 }
 
 uint8_t lps25_shut(void)
 {
+	free(lps25->PRESS_OUT);
+	free(lps25->TEMP_OUT);
 	free(lps25);
 	return(lps25_suspend());
+}
+
+/*! Initiate a one shot sample
+ */
+uint8_t lps25_oneshot(void)
+{
+	uint8_t err, buffer;
+
+	buffer = TRUE;
+/*
+	err = register_read(LPS25_R_CTRL_REG2, &buffer);
+	buffer |= (1<<LPS25_B_ONE_SHOT);
+
+	if (!err)
+		err = register_write(LPS25_R_CTRL_REG2, buffer);
+*/
+	/* 1.Power down the device (clean start) */
+	/*
+	 * err = err || register_write(LPS25_R_CTRL_REG1, 0x00);
+	 */
+	/* 2. Turn on the pressure sensor analog front end in single shot mode */
+	err = register_write(LPS25_R_CTRL_REG1, 0xB0);
+	/* 3. Run one-shot measurement (temperature and pressure),
+	 * the set bit will be reset by the sensor itself after execution
+	 * (self-clearing bit) */
+	err = err || register_write(LPS25_R_CTRL_REG2, 0x01);
+
+	/* 4. Wait until the measurement is completed */
+	while (buffer) {
+		_delay_ms(1);
+		err = err || register_read(LPS25_R_CTRL_REG2, &buffer, 1);
+	}
+
+	err = err || lps25_pressure();
+	err = err || lps25_temperature();
+
+	/*
+	 * lps25_suspend();
+	 */
+
+	return(err);
 }
