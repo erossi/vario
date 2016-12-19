@@ -41,10 +41,11 @@ uint8_t register_read(uint8_t reg, uint8_t *buffer, uint8_t size)
 	if (size > 1)
 		reg |= (1<<7);
 
-	err = i2c_mtm(LPS25_ADDR, 1, &reg, FALSE);
+	err = i2c_mXm(LPS25_ADDR, 1, &reg, FALSE);
 
 	if (!err)
-		err = i2c_mrm(LPS25_ADDR, size, buffer, TRUE);
+		/* set addr to read */
+		err = i2c_mXm((LPS25_ADDR | 1), size, buffer, TRUE);
 
 	return(err);
 }
@@ -54,10 +55,10 @@ uint8_t register_write(uint8_t reg, const uint8_t value)
 {
 	uint8_t err;
 
-	err = i2c_mtm(LPS25_ADDR, 1, &reg, FALSE);
+	err = i2c_mXm(LPS25_ADDR, 1, &reg, FALSE);
 
 	if (!err)
-		err = i2c_mtm(LPS25_ADDR, 1, (uint8_t *) &value, TRUE);
+		err = i2c_mXm(LPS25_ADDR, 1, (uint8_t *) &value, TRUE);
 
 	return(err);
 }
@@ -230,7 +231,6 @@ uint8_t lps25_init(void)
 
 	i2c_init();
 	_delay_ms(1);
-	i2c_gc(I2C_GC_RESET);
 	err = register_read(LPS25_R_WHO_AM_I, &buffer, 1);
 
 	if (!err && (buffer != 0xbd))

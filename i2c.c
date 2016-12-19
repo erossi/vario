@@ -20,6 +20,14 @@
 #include <avr/io.h>
 #include "i2c.h"
 
+/* defines */
+#define START 1
+#define STOP 2
+#define SLA 3
+#define DATA 4
+#define ACK 5
+#define NACK 6
+
 /*! Perform an i2c operation.
  *
  * \return the i2c status register properly masked.

@@ -17,7 +17,8 @@ PRG_NAME = vario
 OPTLEV = s
 
 #default to arduino for now
-PLATFORM = arduino
+#PLATFORM = arduino
+PLATFORM = attiny85
 
 ## Microcontroller definition
 #
@@ -27,14 +28,14 @@ ifeq ($(PLATFORM), arduino)
 	MCU = atmega328p
 	FCPU = 16000000UL
 else
-	MCU = attiny25
+	MCU = attiny85
 	FCPU = 1000000UL
 endif
 
 PWD = $(shell pwd)
 INC = -I/usr/lib/avr/include/
 
-CFLAGS := $(INC) -Wall -Wstrict-prototypes -pedantic -mmcu=$(MCU) -O$(OPTLEV) -D F_CPU=$(FCPU)
+CFLAGS := $(INC) -Wall -Wstrict-prototypes -pedantic -std=c11 -mmcu=$(MCU) -O$(OPTLEV) -D F_CPU=$(FCPU)
 
 ifeq ($(PLATFORM), arduino)
 	CFLAGS += -D ARDUINO
@@ -72,7 +73,12 @@ SIZE = avr-size --format=avr --mcu=$(MCU) $(PRGNAME).elf
 
 REMOVE = rm -f
 
+ifeq ($(PLATFORM), arduino)
 all_obj = i2c.o lps25.o buzz.o usart.o debug.o
+else
+all_obj = i2c_usi.o USI_TWI_Master.o lps25.o buzz.o
+endif
+
 test_all_obj =
 
 # CFLAGS += -D USE_USART1
@@ -88,7 +94,12 @@ test_all_obj =
 ## Default
 #
 all: $(all_obj)
-	$(CC) $(CFLAGS) -o $(PRGNAME).elf main.c $(all_obj) $(LFLAGS)
+ifeq ($(PLATFORM), arduino)
+	$(CC) $(CFLAGS) -o $(PRGNAME).elf main_arduino.c $(all_obj) $(LFLAGS)
+else
+	$(CC) $(CFLAGS) -o $(PRGNAME).elf main_tiny.c $(all_obj) $(LFLAGS)
+endif
+
 	$(OBJCOPY) $(PRGNAME).elf $(PRGNAME).hex
 
 programstk:
