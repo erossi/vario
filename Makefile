@@ -18,7 +18,8 @@ OPTLEV = s
 
 #default to arduino for now
 #PLATFORM = arduino
-PLATFORM = attiny85
+#PLATFORM = attiny85
+PLATFORM = attiny25
 
 ## Microcontroller definition
 #
@@ -28,7 +29,7 @@ ifeq ($(PLATFORM), arduino)
 	MCU = atmega328p
 	FCPU = 16000000UL
 else
-	MCU = attiny85
+	MCU = $(PLATFORM)
 	FCPU = 1000000UL
 endif
 
