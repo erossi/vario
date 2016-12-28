@@ -20,8 +20,9 @@
 #ifndef _LPS25_h_
 #define _LPS25_h_
 
-#if defined (__AVR_ATtiny25__) | defined (__AVR_ATtiny85__)
-#include "i2c_usi.h"
+#if defined (__AVR_ATtiny85__)
+#include "USI_TWI_Master.h"
+#define I2C_USI
 #else
 #include "i2c.h"
 #endif

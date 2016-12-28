@@ -46,8 +46,8 @@ ISR(TIMER0_OVF_vect) {
  * to play a 4 Khz wave it has to count:
  * c = 62.5Khz/4Khz = 15.6 steps
  *
- * Example for AtTiny 1Mhz CPU
- * Prescaler = 8
+ * Example for AtTiny 8Mhz CPU
+ * Prescaler = 64
  * Fstep = 125Khz
  * to play a 4Khz wave it has to count:
  * c = 125Khz/4Khz = 31.25 steps
@@ -76,8 +76,8 @@ void buzz_play(const uint16_t freq, const uint8_t duty)
 	OCR0B = (uint8_t)(c*duty/100);
 	/* Clear counter */
 	TCNT0 = 0x00;
-	/* prescaler */
-	TCCR0B |= _BV(CS01);
+	/* prescaler FCPU/64 */
+	TCCR0B |= _BV(CS01) | _BV(CS00);
 #endif
 }
 

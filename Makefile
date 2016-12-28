@@ -14,12 +14,12 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 PRG_NAME = vario
+# space opt
 OPTLEV = s
 
 #default to arduino for now
 #PLATFORM = arduino
-#PLATFORM = attiny85
-PLATFORM = attiny25
+PLATFORM = attiny85
 
 ## Microcontroller definition
 #
@@ -30,7 +30,7 @@ ifeq ($(PLATFORM), arduino)
 	FCPU = 16000000UL
 else
 	MCU = $(PLATFORM)
-	FCPU = 1000000UL
+	FCPU = 8000000UL
 endif
 
 PWD = $(shell pwd)
@@ -77,12 +77,10 @@ REMOVE = rm -f
 ifeq ($(PLATFORM), arduino)
 all_obj = i2c.o lps25.o buzz.o usart.o debug.o
 else
-all_obj = i2c_usi.o USI_TWI_Master.o lps25.o buzz.o
+all_obj = USI_TWI_Master.o lps25.o buzz.o
 endif
 
 test_all_obj =
-
-# CFLAGS += -D USE_USART1
 
 .PHONY: clean indent
 .SILENT: help
@@ -101,6 +99,10 @@ else
 	$(CC) $(CFLAGS) -o $(PRGNAME).elf main_tiny.c $(all_obj) $(LFLAGS)
 endif
 
+	$(OBJCOPY) $(PRGNAME).elf $(PRGNAME).hex
+
+test: USI_TWI_Master.o
+	$(CC) $(CFLAGS) -o $(PRGNAME).elf test_usi.c USI_TWI_Master.o $(LFLAGS)
 	$(OBJCOPY) $(PRGNAME).elf $(PRGNAME).hex
 
 programstk:

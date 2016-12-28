@@ -17,6 +17,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <avr/interrupt.h>
 #include <util/delay.h>
 #include "lps25.h"
 #include "buzz.h"
@@ -25,11 +26,18 @@ int main(void)
 {
 	buzz_init();
 
-	if (!lps25_init())
+	sei();
+
+	if (lps25_init()) {
 		beep(2500);
+		beep(2500);
+	} else {
+		beep(2500);
+	}
 
 	while(1) {
-		_delay_ms(10000);
+		_delay_ms(1000);
+		beep(2000);
 	}
 
 	return(0);

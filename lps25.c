@@ -18,6 +18,7 @@
 */
 
 #include <stdlib.h>
+#include <string.h>
 #include <avr/io.h>
 #include <util/delay.h>
 #include "lps25.h"
@@ -33,19 +34,42 @@
  * \note to actually read more than one register, the MSB of the
  * register's address must be set.
  */
-uint8_t register_read(uint8_t reg, uint8_t *buffer, uint8_t size)
+uint8_t register_read(uint8_t reg, uint8_t *data, uint8_t size)
 {
 	uint8_t err;
+
+#ifdef I2C_USI
+	uint8_t *buffer;
+#endif
 
 	/* assert the MSB if more than one register */
 	if (size > 1)
 		reg |= (1<<7);
 
+#ifdef I2C_USI
+	buffer = malloc(size + 1);
+	*buffer = LPS25_ADDR;
+	*(buffer + 1) = reg;
+	err = FALSE;
+
+	if (USI_TWI_Start_Transceiver_With_Data(buffer, 2, FALSE))
+		*buffer = LPS25_ADDR | 1;
+	else
+		err = USI_TWI_Get_State_Info();
+
+	if (!err && USI_TWI_Start_Transceiver_With_Data(buffer, size + 1, TRUE))
+		memcpy(data, buffer + 1, size);
+	else
+		err = USI_TWI_Get_State_Info();
+
+	free(buffer);
+#else
 	err = i2c_mXm(LPS25_ADDR, 1, &reg, FALSE);
 
 	if (!err)
 		/* set addr to read */
-		err = i2c_mXm((LPS25_ADDR | 1), size, buffer, TRUE);
+		err = i2c_mXm((LPS25_ADDR | 1), size, data, TRUE);
+#endif
 
 	return(err);
 }
@@ -53,12 +77,28 @@ uint8_t register_read(uint8_t reg, uint8_t *buffer, uint8_t size)
 /*! Write a single register */
 uint8_t register_write(uint8_t reg, const uint8_t value)
 {
-	uint8_t err;
+	uint8_t err = 0;
 
+#ifdef I2C_USI
+	uint8_t *buffer;
+
+	buffer = malloc(3);
+	*buffer = LPS25_ADDR;
+	*(buffer + 1) = reg;
+	*(buffer + 2) = value;
+
+	if (USI_TWI_Start_Transceiver_With_Data(buffer, 3, TRUE))
+		err = FALSE;
+	else
+		err = USI_TWI_Get_State_Info();
+
+	free(buffer);
+#else
 	err = i2c_mXm(LPS25_ADDR, 1, &reg, FALSE);
 
 	if (!err)
 		err = i2c_mXm(LPS25_ADDR, 1, (uint8_t *) &value, TRUE);
+#endif
 
 	return(err);
 }
@@ -229,7 +269,12 @@ uint8_t lps25_init(void)
 	lps25->TEMP_OUT = malloc(2);
 	lps25->PRESS_OUT = malloc(3);
 
+#ifdef I2C_USI
+	USI_TWI_Master_Initialise();
+#else
 	i2c_init();
+#endif
+
 	_delay_ms(1);
 	err = register_read(LPS25_R_WHO_AM_I, &buffer, 1);
 
@@ -237,12 +282,14 @@ uint8_t lps25_init(void)
 		err = 0xff;
 
 	/* reset */
-	err = err || register_write(LPS25_R_CTRL_REG2,
-			_BV(LPS25_B_BOOT) | _BV(LPS25_B_SWRESET));
+	if (!err) {
+		err = register_write(LPS25_R_CTRL_REG2,
+				_BV(LPS25_B_BOOT) | _BV(LPS25_B_SWRESET));
 
-	while (buffer) {
-		register_read(LPS25_R_CTRL_REG2, &buffer, 1);
-		buffer &= _BV(LPS25_B_BOOT);
+		while (buffer) {
+			register_read(LPS25_R_CTRL_REG2, &buffer, 1);
+			buffer &= _BV(LPS25_B_BOOT);
+		}
 	}
 
 	return(err);

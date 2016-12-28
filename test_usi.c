@@ -15,22 +15,27 @@
  * If not, see <http://www.gnu.org/licenses/>.
  */
 
-/*! \file i2c_usi.h */
-
-#ifndef I2C_USI
-#define I2C_USI
-
+#include <stdlib.h>
 #include <stdint.h>
+#include <util/delay.h>
 #include "USI_TWI_Master.h"
 
-#ifndef TRUE
-#define TRUE 1
-#define FALSE 0
-#endif
+#define LPS25_R_WHO_AM_I 0x0F
+#define LPS25_ADDR 0xba
 
-void i2c_init(void);
-void i2c_shut(void);
-uint8_t i2c_mXm(const uint8_t addr, const uint16_t lenght,
-		uint8_t *data, const uint8_t stop);
+int main(void)
+{
+	uint8_t* buffer;
 
-#endif
+	buffer = malloc(3);
+	USI_TWI_Master_Initialise();
+	*buffer = LPS25_ADDR;
+	*(buffer + 1) = LPS25_R_WHO_AM_I;
+	USI_TWI_Start_Transceiver_With_Data(buffer, 2, FALSE);
+	*buffer = LPS25_ADDR | 1;
+	USI_TWI_Start_Transceiver_With_Data(buffer, 2, TRUE);
+
+	while(1) {
+		_delay_ms(1000);
+	}
+}
