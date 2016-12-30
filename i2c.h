@@ -33,23 +33,8 @@
 #define FALSE 0
 #endif
 
-uint8_t i2c_send(const uint8_t code, const uint8_t data);
 void i2c_init(void);
 void i2c_shut(void);
-uint8_t i2c_mtm(const uint8_t addr, const uint16_t lenght,
-		uint8_t *data, const uint8_t stop);
-uint8_t i2c_mrm(const uint8_t addr, const uint16_t lenght,
-		uint8_t *data, const uint8_t stop);
+uint8_t i2c_mXm(uint8_t *data, const uint8_t size, uint8_t stop);
 uint8_t i2c_gc(const uint8_t call);
-
-#ifdef I2C_LEGACY_MODE
-uint8_t i2c_master_send_b(const uint8_t addr, const uint8_t data,
-		const uint8_t stop);
-uint8_t i2c_master_send_w(const uint8_t addr, const uint8_t msb,
-		const uint8_t lsb);
-uint8_t i2c_master_read_b(const uint8_t addr, uint8_t *byte,
-		const uint8_t stop);
-uint8_t i2c_master_read_w(const uint8_t addr, uint16_t *data);
-#endif
-
 #endif

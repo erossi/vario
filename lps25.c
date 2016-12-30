@@ -37,21 +37,18 @@
 uint8_t register_read(uint8_t reg, uint8_t *data, uint8_t size)
 {
 	uint8_t err;
-
-#ifdef I2C_USI
 	uint8_t *buffer;
-#endif
 
 	/* assert the MSB if more than one register */
 	if (size > 1)
 		reg |= (1<<7);
 
-#ifdef I2C_USI
 	buffer = malloc(size + 1);
 	*buffer = LPS25_ADDR;
 	*(buffer + 1) = reg;
 	err = FALSE;
 
+#ifdef I2C_USI
 	if (USI_TWI_Start_Transceiver_With_Data(buffer, 2, FALSE))
 		*buffer = LPS25_ADDR | 1;
 	else
@@ -61,25 +58,25 @@ uint8_t register_read(uint8_t reg, uint8_t *data, uint8_t size)
 		memcpy(data, buffer + 1, size);
 	else
 		err = USI_TWI_Get_State_Info();
-
-	free(buffer);
 #else
-	err = i2c_mXm(LPS25_ADDR, 1, &reg, FALSE);
+	err = i2c_mXm(buffer, 2, FALSE);
 
-	if (!err)
+	if (!err) {
 		/* set addr to read */
-		err = i2c_mXm((LPS25_ADDR | 1), size, data, TRUE);
+		*buffer = LPS25_ADDR | 1;
+		err = i2c_mXm(buffer, size + 1, TRUE);
+		memcpy(data, buffer + 1, size);
+	}
 #endif
 
-	return(err);
+	free (buffer);
+	return (err);
 }
 
 /*! Write a single register */
-uint8_t register_write(uint8_t reg, const uint8_t value)
+uint8_t register_write(const uint8_t reg, const uint8_t value)
 {
 	uint8_t err = 0;
-
-#ifdef I2C_USI
 	uint8_t *buffer;
 
 	buffer = malloc(3);
@@ -87,20 +84,17 @@ uint8_t register_write(uint8_t reg, const uint8_t value)
 	*(buffer + 1) = reg;
 	*(buffer + 2) = value;
 
+#ifdef I2C_USI
 	if (USI_TWI_Start_Transceiver_With_Data(buffer, 3, TRUE))
 		err = FALSE;
 	else
 		err = USI_TWI_Get_State_Info();
-
-	free(buffer);
 #else
-	err = i2c_mXm(LPS25_ADDR, 1, &reg, FALSE);
-
-	if (!err)
-		err = i2c_mXm(LPS25_ADDR, 1, (uint8_t *) &value, TRUE);
+	err = i2c_mXm(buffer, 3, TRUE);
 #endif
 
-	return(err);
+	free(buffer);
+	return (err);
 }
 
 /* Setup the FIFO in FIFO mean mode.
@@ -149,7 +143,7 @@ uint8_t lps25_temperature(void)
 
 	if (!err) {
 		temp_out = ((uint16_t)lps25->TEMP_OUT[1] << 8) | (uint16_t)lps25->TEMP_OUT[0];
-		lps25->temperature = 42.5 + (temp_out / 480);
+		lps25->temperature = 42.5 + (float)temp_out / 480;
 	} else {
 		lps25->temperature = -99;
 	}
@@ -174,7 +168,7 @@ uint8_t lps25_pressure(void)
 
 	if (!err) {
 		hpout = ((int32_t)lps25->PRESS_OUT[2] << 16) | ((int32_t)lps25->PRESS_OUT[1] << 8) | (int32_t)lps25->PRESS_OUT[0];
-		lps25->Hpa = hpout / 4096;
+		lps25->Hpa = (float)hpout / 4096;
 	} else {
 		lps25->Hpa = 0;
 	}
@@ -284,12 +278,11 @@ uint8_t lps25_init(void)
 	/* reset */
 	if (!err) {
 		err = register_write(LPS25_R_CTRL_REG2,
-				_BV(LPS25_B_BOOT) | _BV(LPS25_B_SWRESET));
+				(1 << LPS25_B_BOOT) | (1 << LPS25_B_SWRESET));
 
-		while (buffer) {
+		do {
 			register_read(LPS25_R_CTRL_REG2, &buffer, 1);
-			buffer &= _BV(LPS25_B_BOOT);
-		}
+		} while (buffer & (1 << LPS25_B_BOOT));
 	}
 
 	return(err);
@@ -318,24 +311,33 @@ uint8_t lps25_oneshot(void)
 		err = register_write(LPS25_R_CTRL_REG2, buffer);
 */
 	/* 1.Power down the device (clean start) */
-	/*
-	 * err = err || register_write(LPS25_R_CTRL_REG1, 0x00);
-	 */
+	err = register_write(LPS25_R_CTRL_REG1, 0x00);
+
 	/* 2. Turn on the pressure sensor analog front end in single shot mode */
-	err = register_write(LPS25_R_CTRL_REG1, 0xB0);
+	if (!err)
+		// err = register_write(LPS25_R_CTRL_REG1, 0xB0);
+		err = register_write(LPS25_R_CTRL_REG1, 0x84);
+
 	/* 3. Run one-shot measurement (temperature and pressure),
 	 * the set bit will be reset by the sensor itself after execution
 	 * (self-clearing bit) */
-	err = err || register_write(LPS25_R_CTRL_REG2, 0x01);
+	if (!err) {
+		err = register_write(LPS25_R_CTRL_REG2, 0x01);
 
-	/* 4. Wait until the measurement is completed */
-	while (buffer) {
-		_delay_ms(1);
-		err = err || register_read(LPS25_R_CTRL_REG2, &buffer, 1);
+		/* 4. Wait until the measurement is completed */
+		do {
+			_delay_ms(10);
+			err = register_read(LPS25_R_CTRL_REG2, &buffer, 1);
+
+			if (err)
+				break;
+		} while (buffer & 1);
 	}
 
-	err = err || lps25_pressure();
-	err = err || lps25_temperature();
+	if (!err) {
+		err = lps25_pressure();
+		err = lps25_temperature();
+	}
 
 	/*
 	 * lps25_suspend();

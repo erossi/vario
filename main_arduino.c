@@ -17,6 +17,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <avr/interrupt.h>
 #include <util/delay.h>
 #include "lps25.h"
 #include "buzz.h"
@@ -51,52 +52,31 @@ void print_lps25(void)
 	debug_print_P(PSTR("\n"));
 }
 
-void dump_all(void)
-{
-	uint8_t *memory;
-	uint8_t i;
-
-	memory = malloc(0x80);
-
-	if (lps25_dump_all(memory)) {
-		debug_print_P(PSTR("ERROR\n"));
-	} else {
-		for (i=0x8; i<0x3b; i++) {
-			sprintf(debug->buffer, "%#02x: %#02x %#02x\n", i, memory[i], memory[i+0x40]);
-			debug_print(NULL);
-		}
-	}
-
-	free(memory);
-}
-
 int main(void)
 {
 	debug_init();
 	buzz_init();
+	sei();
 
-	if (!lps25_init())
+	if (!lps25_init()) {
 		beep(2500);
+	} else {
+		beep(1000);
+		beep(1000);
+	}
 
 	if (lps25_oneshot())
 		debug_print_P(PSTR("ERROR\n"));
 	else
 		print_lps25();
+
 	/*
 	lps25_fifo_mean_mode();
 	lps25_resume();
 	*/
 
 	while(1) {
-		/*
-		if (lps25_oneshot())
-			debug_print_P(PSTR("ERROR\n"));
-		else
-			print_lps25();
-
-		dump_all();
-		*/
-		_delay_ms(10000);
+		_delay_ms(1000);
 	}
 
 	return(0);
