@@ -101,22 +101,26 @@ uint8_t register_write(const uint8_t reg, const uint8_t value)
  *
  * Config as per datasheet.
  *
- * RES_CONF (10h) = 05h
+ * RES_CONF(0x10) = 0x05 (set AVGT=16, AVGP=32, or less)
  *  Pressure 32 sample average,
  *  Temperature 16 sample average.
  *
- * FIFO_CTRL (2Eh) = C0h
- * CTRL_REG2 (21h) = 40h
+ * FIFO_CTRL (0x2E) = 0xC1 (Set FIFO Mean mode with average
+ * on 2 samples or more, up to 0xDF)
+ *
+ * CTRL_REG2 (0x21) = 0x40 (FIFO enabled, decimation disabled)
+ * CTRL_REG1 (0x20) = 0x90 (ODR = 1 Hz, power-on device)
  *
  */
 void lps25_fifo_mean_mode(void)
 {
-	register_write(LPS25_R_RES_CONF,
-			((1<<LPS25_B_AVGT0) | (1<<LPS25_B_AVGP0)));
-	register_write(LPS25_R_FIFO_CTRL,
-			((1<<LPS25_B_F_MODE1) | (1<<LPS25_B_F_MODE2)));
-	register_write(LPS25_R_CTRL_REG2,
-			(1<<LPS25_B_FIFO_EN));
+	register_write(LPS25_RES_CONF,
+			(1 << LPS25_AVGT0) | (1 << LPS25_AVGP0));
+	register_write(LPS25_FIFO_CTRL,
+			(1 << LPS25_F_MODE1) | (1 << LPS25_F_MODE2) |
+			(1 << LPS25_WTM_POINT0));
+	register_write(LPS25_CTRL_REG2,
+			(1<<LPS25_FIFO_EN));
 }
 
 /*! Set the fifo mean mode watermark
@@ -139,7 +143,7 @@ uint8_t lps25_temperature(void)
 	int16_t temp_out;
 	uint8_t err;
 
-	err = register_read(LPS25_R_TEMP_OUT, lps25->TEMP_OUT, 2);
+	err = register_read(LPS25_TEMP_OUT, lps25->TEMP_OUT, 2);
 
 	if (!err) {
 		temp_out = ((uint16_t)lps25->TEMP_OUT[1] << 8) | (uint16_t)lps25->TEMP_OUT[0];
@@ -164,7 +168,7 @@ uint8_t lps25_pressure(void)
 	int32_t hpout;
 	uint8_t err;
 
-	err = register_read(LPS25_R_PRESS_OUT, lps25->PRESS_OUT, 3);
+	err = register_read(LPS25_PRESS_OUT, lps25->PRESS_OUT, 3);
 
 	if (!err) {
 		hpout = ((int32_t)lps25->PRESS_OUT[2] << 16) | ((int32_t)lps25->PRESS_OUT[1] << 8) | (int32_t)lps25->PRESS_OUT[0];
@@ -185,12 +189,12 @@ uint8_t lps25_suspend(void)
 {
 	uint8_t err, buffer;
 
-	err = register_read(LPS25_R_CTRL_REG1, &buffer, 1);
+	err = register_read(LPS25_CTRL_REG1, &buffer, 1);
 	/* PD bit = 0 */
-	buffer &= ~_BV(LPS25_B_PD);
+	buffer &= ~_BV(LPS25_PD);
 
 	if (!err)
-		err = register_write(LPS25_R_CTRL_REG1, buffer);
+		err = register_write(LPS25_CTRL_REG1, buffer);
 
 	return(!err);
 }
@@ -204,13 +208,13 @@ uint8_t lps25_resume(void)
 	uint8_t err, buffer;
 
 	/* Read the register */
-	err = register_read(LPS25_R_CTRL_REG1, &buffer, 1);
+	err = register_read(LPS25_CTRL_REG1, &buffer, 1);
 	/* PD bit = 1 */
-	buffer |= _BV(LPS25_B_PD);
+	buffer |= _BV(LPS25_PD);
 
 	/* write the register */
 	if (!err)
-		err = register_write(LPS25_R_CTRL_REG1, buffer);
+		err = register_write(LPS25_CTRL_REG1, buffer);
 
 	return(!err);
 }
@@ -223,11 +227,11 @@ uint8_t temperature_init(void)
 {
 	uint8_t err, buffer;
 
-	err = register_read(LPS25_R_RES_CONF, &buffer, 1);
-	buffer |= (1<<LPS25_B_AVGT0) | (1<<LPS25_B_AVGT1);
+	err = register_read(LPS25_RES_CONF, &buffer, 1);
+	buffer |= (1<<LPS25_AVGT0) | (1<<LPS25_AVGT1);
 
 	if (!err)
-		err = register_write(LPS25_R_RES_CONF, buffer);
+		err = register_write(LPS25_RES_CONF, buffer);
 
 	return(err);
 }
@@ -239,11 +243,11 @@ uint8_t pressure_init(void)
 {
 	uint8_t err, buffer;
 
-	err = register_read(LPS25_R_RES_CONF, &buffer, 1);
-	buffer |= (1<<LPS25_B_AVGP0) | (1<<LPS25_B_AVGP1);
+	err = register_read(LPS25_RES_CONF, &buffer, 1);
+	buffer |= (1<<LPS25_AVGP0) | (1<<LPS25_AVGP1);
 
 	if (!err)
-		err = register_write(LPS25_R_RES_CONF, buffer);
+		err = register_write(LPS25_RES_CONF, buffer);
 
 	return(err);
 }
@@ -270,19 +274,22 @@ uint8_t lps25_init(void)
 #endif
 
 	_delay_ms(1);
-	err = register_read(LPS25_R_WHO_AM_I, &buffer, 1);
+	err = register_read(LPS25_WHO_AM_I, &buffer, 1);
 
 	if (!err && (buffer != 0xbd))
 		err = 0xff;
 
 	/* reset */
 	if (!err) {
-		err = register_write(LPS25_R_CTRL_REG2,
-				(1 << LPS25_B_BOOT) | (1 << LPS25_B_SWRESET));
+		err = register_write(LPS25_CTRL_REG2,
+				(1 << LPS25_BOOT) | (1 << LPS25_SWRESET));
 
 		do {
-			register_read(LPS25_R_CTRL_REG2, &buffer, 1);
-		} while (buffer & (1 << LPS25_B_BOOT));
+			register_read(LPS25_CTRL_REG2, &buffer, 1);
+		} while (buffer & (1 << LPS25_BOOT));
+
+		/* wait an additional 5ms */
+		_delay_ms(5);
 	}
 
 	return(err);
@@ -304,30 +311,30 @@ uint8_t lps25_oneshot(void)
 
 	buffer = TRUE;
 /*
-	err = register_read(LPS25_R_CTRL_REG2, &buffer);
-	buffer |= (1<<LPS25_B_ONE_SHOT);
+	err = register_read(LPS25_CTRL_REG2, &buffer);
+	buffer |= (1<<LPS25_ONE_SHOT);
 
 	if (!err)
-		err = register_write(LPS25_R_CTRL_REG2, buffer);
+		err = register_write(LPS25_CTRL_REG2, buffer);
 */
 	/* 1.Power down the device (clean start) */
-	err = register_write(LPS25_R_CTRL_REG1, 0x00);
+	err = register_write(LPS25_CTRL_REG1, 0x00);
 
 	/* 2. Turn on the pressure sensor analog front end in single shot mode */
 	if (!err)
-		// err = register_write(LPS25_R_CTRL_REG1, 0xB0);
-		err = register_write(LPS25_R_CTRL_REG1, 0x84);
+		// err = register_write(LPS25_CTRL_REG1, 0xB0);
+		err = register_write(LPS25_CTRL_REG1, 0x84);
 
 	/* 3. Run one-shot measurement (temperature and pressure),
 	 * the set bit will be reset by the sensor itself after execution
 	 * (self-clearing bit) */
 	if (!err) {
-		err = register_write(LPS25_R_CTRL_REG2, 0x01);
+		err = register_write(LPS25_CTRL_REG2, 0x01);
 
 		/* 4. Wait until the measurement is completed */
 		do {
 			_delay_ms(10);
-			err = register_read(LPS25_R_CTRL_REG2, &buffer, 1);
+			err = register_read(LPS25_CTRL_REG2, &buffer, 1);
 
 			if (err)
 				break;
