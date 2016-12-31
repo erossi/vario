@@ -123,6 +123,8 @@ void lps25_fifo_mean_mode(void)
 			(1 << LPS25_FIFO_EN));
 	register_write(LPS25_CTRL_REG1,
 			(1 << LPS25_PD) | (1 << LPS25_ODR0));
+	register_write(LPS25_CTRL_REG4,
+			(1 << LPS25_P1_DRDY));
 }
 
 /* Update the temperature.

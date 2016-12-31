@@ -87,6 +87,9 @@
 #define LPS25_WTM_EN 5
 #define LPS25_FIFO_EN 6
 #define LPS25_BOOT 7
+/* Register CTRL_REG4 */
+#define LPS25_P1_DRDY 0
+
 /* Register FIFO_CTRL */
 #define LPS25_WTM_POINT0 0
 #define LPS25_WTM_POINT1 1
