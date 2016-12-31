@@ -70,12 +70,13 @@ int main(void)
 	else
 		print_lps25();
 
-	/*
 	lps25_fifo_mean_mode();
-	lps25_resume();
-	*/
+	// lps25_resume();
 
 	while(1) {
+		lps25_pressure();
+		lps25_temperature();
+		print_lps25();
 		_delay_ms(1000);
 	}
 

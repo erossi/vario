@@ -120,16 +120,9 @@ void lps25_fifo_mean_mode(void)
 			(1 << LPS25_F_MODE1) | (1 << LPS25_F_MODE2) |
 			(1 << LPS25_WTM_POINT0));
 	register_write(LPS25_CTRL_REG2,
-			(1<<LPS25_FIFO_EN));
-}
-
-/*! Set the fifo mean mode watermark
- *
- * Watermark represent the number of elements used
- * to calculate the average in the fifo mean mode.
- */
-void set_watermark(void)
-{
+			(1 << LPS25_FIFO_EN));
+	register_write(LPS25_CTRL_REG1,
+			(1 << LPS25_PD) | (1 << LPS25_ODR0));
 }
 
 /* Update the temperature.
@@ -310,13 +303,6 @@ uint8_t lps25_oneshot(void)
 	uint8_t err, buffer;
 
 	buffer = TRUE;
-/*
-	err = register_read(LPS25_CTRL_REG2, &buffer);
-	buffer |= (1<<LPS25_ONE_SHOT);
-
-	if (!err)
-		err = register_write(LPS25_CTRL_REG2, buffer);
-*/
 	/* 1.Power down the device (clean start) */
 	err = register_write(LPS25_CTRL_REG1, 0x00);
 

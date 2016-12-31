@@ -65,13 +65,20 @@
 #define LPS25_RPDS_L 0x39
 #define LPS25_RPDS_H 0x3A
 
-/* bit */
-#define LPS25_PD 7
 /* Register RES_CONF */
 #define LPS25_AVGP0 0
 #define LPS25_AVGP1 1
 #define LPS25_AVGT0 2
 #define LPS25_AVGT1 3
+/* Register CTRL_REG1 */
+#define LPS25_SIM 0
+#define LPS25_RESET_AZ 1
+#define LPS25_BDU 2
+#define LPS25_DIFF_EN 3
+#define LPS25_ODR0 4
+#define LPS25_ODR1 5
+#define LPS25_ODR2 6
+#define LPS25_PD 7
 /* Register CTRL_REG2 */
 #define LPS25_ONE_SHOT 0
 #define LPS25_AUTO_ZERO 1
@@ -110,10 +117,9 @@ uint8_t lps25_init(void);
 uint8_t lpslps25_25_shut(void);
 uint8_t lpslps25_25_suspend(void);
 uint8_t lps25_resume(void);
+uint8_t lps25_pressure(void);
 uint8_t lps25_temperature(void);
 uint8_t lps25_oneshot(void);
 void lps25_fifo_mean_mode(void);
-uint8_t lps25_regset_check(uint8_t reg, uint8_t *value);
-uint8_t lps25_dump_all(uint8_t *memory);
 
 #endif
