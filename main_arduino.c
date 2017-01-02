@@ -33,6 +33,11 @@ void print_lps25(void)
 	debug->buffer = dtostrf(lps25->dHpa, 5, 2, debug->buffer);
 	debug_print(NULL);
 	debug_print_P(PSTR("\n"));
+	/* Test delta-meters, 1hPa = 8.3 meters */
+	debug_print_P(PSTR("dmt: "));
+	debug->buffer = dtostrf((lps25->dHpa * 8.3), 5, 2, debug->buffer);
+	debug_print(NULL);
+	debug_print_P(PSTR("\n"));
 	debug_print_P(PSTR("Temp: "));
 	debug->buffer = dtostrf(lps25->temperature, 3, 2, debug->buffer);
 	debug_print(NULL);
