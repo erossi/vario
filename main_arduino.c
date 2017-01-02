@@ -38,16 +38,18 @@ void print_lps25(void)
 	debug_print(NULL);
 	debug_print_P(PSTR("\n"));
 	debug_print_P(PSTR("Reg PRESSOUT: "));
-	sprintf(debug->buffer, "%#02x", lps25->PRESS_OUT[0]);
+	/* MSB */
+	sprintf(debug->buffer, "%#02x", lps25->PRESS_OUT[2]);
 	debug_print(NULL);
 	sprintf(debug->buffer, "%02x", lps25->PRESS_OUT[1]);
 	debug_print(NULL);
-	sprintf(debug->buffer, "%02x\n", lps25->PRESS_OUT[2]);
+	sprintf(debug->buffer, "%02x\n", lps25->PRESS_OUT[0]);
 	debug_print(NULL);
 	debug_print_P(PSTR("Reg TEMPOUT: "));
-	sprintf(debug->buffer, "%#02x", lps25->TEMP_OUT[0]);
+	/* MSB */
+	sprintf(debug->buffer, "%#02x", lps25->TEMP_OUT[1]);
 	debug_print(NULL);
-	sprintf(debug->buffer, "%02x\n", lps25->TEMP_OUT[1]);
+	sprintf(debug->buffer, "%02x\n", lps25->TEMP_OUT[0]);
 	debug_print(NULL);
 	debug_print_P(PSTR("\n"));
 }
@@ -74,10 +76,11 @@ int main(void)
 	// lps25_resume();
 
 	while(1) {
-		lps25_pressure();
-		lps25_temperature();
-		print_lps25();
-		_delay_ms(1000);
+		if (bit_is_set(PINC, PC0)) {
+			lps25_pressure();
+			lps25_temperature();
+			print_lps25();
+		}
 	}
 
 	return(0);

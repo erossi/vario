@@ -109,7 +109,9 @@ uint8_t register_write(const uint8_t reg, const uint8_t value)
  * on 2 samples or more, up to 0xDF)
  *
  * CTRL_REG2 (0x21) = 0x40 (FIFO enabled, decimation disabled)
+ *
  * CTRL_REG1 (0x20) = 0x90 (ODR = 1 Hz, power-on device)
+ * CTRL_REG4 enable the IRQ pin when data is ready.
  *
  */
 void lps25_fifo_mean_mode(void)
