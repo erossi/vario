@@ -162,16 +162,19 @@ uint8_t lps25_temperature(void)
  */
 uint8_t lps25_pressure(void)
 {
-	int32_t hpout;
 	uint8_t err;
 
 	err = register_read(LPS25_PRESS_OUT, lps25->PRESS_OUT, 3);
 
 	if (!err) {
-		hpout = ((int32_t)lps25->PRESS_OUT[2] << 16) | ((int32_t)lps25->PRESS_OUT[1] << 8) | (int32_t)lps25->PRESS_OUT[0];
-		lps25->Hpa = (float)hpout / 4096;
+		lps25->dHpa = lps25->Hpa;
+		lps25->Hpa = (float)(((int32_t)lps25->PRESS_OUT[2] << 16) |
+				((int32_t)lps25->PRESS_OUT[1] << 8) |
+				(int32_t)lps25->PRESS_OUT[0]) / 4096;
+		lps25->dHpa = lps25->Hpa - lps25->dHpa;
 	} else {
 		lps25->Hpa = 0;
+		lps25->dHpa = 0;
 	}
 
 	return(err);
