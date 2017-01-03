@@ -137,14 +137,13 @@ void lps25_fifo_mean_mode(void)
  */
 uint8_t lps25_temperature(void)
 {
-	int16_t temp_out;
 	uint8_t err;
 
-	err = register_read(LPS25_TEMP_OUT, lps25->TEMP_OUT, 2);
+	err = register_read(LPS25_TEMP_OUT, (uint8_t *)&lps25->TOUT, 2);
 
 	if (!err) {
-		temp_out = ((uint16_t)lps25->TEMP_OUT[1] << 8) | (uint16_t)lps25->TEMP_OUT[0];
-		lps25->temperature = 42.5 + (float)temp_out / 480;
+		/* calculate the temperature */
+		lps25->temperature = 42.5 + (float)lps25->TOUT / 480;
 	} else {
 		lps25->temperature = -99;
 	}
@@ -164,13 +163,11 @@ uint8_t lps25_pressure(void)
 {
 	uint8_t err;
 
-	err = register_read(LPS25_PRESS_OUT, lps25->PRESS_OUT, 3);
+	err = register_read(LPS25_PRESS_OUT, (uint8_t*)&lps25->POUT, 3);
 
 	if (!err) {
 		lps25->dHpa = lps25->Hpa;
-		lps25->Hpa = (float)(((int32_t)lps25->PRESS_OUT[2] << 16) |
-				((int32_t)lps25->PRESS_OUT[1] << 8) |
-				(int32_t)lps25->PRESS_OUT[0]) / 4096;
+		lps25->Hpa = (float)lps25->POUT / 4096;
 		lps25->dHpa = lps25->Hpa - lps25->dHpa;
 	} else {
 		lps25->Hpa = 0;
@@ -263,10 +260,8 @@ uint8_t lps25_init(void)
 	lps25->temperature = -99;
 	lps25->Hpa = 0;
 	lps25->dHpa = 0;
-
-	lps25->TEMP_OUT = malloc(2);
-	lps25->PRESS_OUT = malloc(3);
-
+	lps25->POUT = 0;
+	lps25->TOUT = 0;
 #ifdef I2C_USI
 	USI_TWI_Master_Initialise();
 #else
@@ -297,10 +292,8 @@ uint8_t lps25_init(void)
 
 uint8_t lps25_shut(void)
 {
-	free(lps25->PRESS_OUT);
-	free(lps25->TEMP_OUT);
 	free(lps25);
-	return(lps25_suspend());
+	return (lps25_suspend());
 }
 
 /*! Initiate a one shot sample

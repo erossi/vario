@@ -18,8 +18,10 @@ PRG_NAME = vario
 OPTLEV = s
 
 #default to arduino for now
+ifndef PLATFORM
 PLATFORM = arduino
 # PLATFORM = attiny85
+endif
 
 ## Microcontroller definition
 #

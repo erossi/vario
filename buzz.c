@@ -138,25 +138,31 @@ void buzz_shut(void)
 #endif
 }
 
-void beep(uint16_t tone)
+void beep(int8_t mts)
 {
-	uint8_t i;
+	uint16_t msec, j, freq;
 
-	buzz_play(tone, 50);
-	i = (uint8_t)((3000-tone)/10);
-	i++;
+	if (mts > 10)
+		mts = 10;
 
-	while (i) {
-		_delay_ms(10);
-		i--;
-	}
+	if (mts > 0) {
+		freq = 1500 + mts * 100;
+		msec = 500/mts;
 
-	buzz_stop();
-	i = (uint8_t)((3000-tone)/10);
-	i++;
+		while (mts--) {
+			j = msec;
+			buzz_play(freq, 50);
 
-	while (i) {
-		_delay_ms(10);
-		i--;
+			while (j--)
+				_delay_ms(1);
+
+			buzz_stop();
+			j = msec;
+
+			while (j--)
+				_delay_ms(1);
+		}
+	} else {
+		_delay_ms(1000);
 	}
 }

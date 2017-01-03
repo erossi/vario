@@ -35,28 +35,27 @@ void print_lps25(void)
 	debug_print_P(PSTR("\n"));
 	/* Test delta-meters, 1hPa = 8.3 meters */
 	debug_print_P(PSTR("dmt: "));
-	debug->buffer = dtostrf((lps25->dHpa * 8.3), 5, 2, debug->buffer);
+	debug->buffer = dtostrf(((-lps25->dHpa) * 8.3), 5, 2, debug->buffer);
 	debug_print(NULL);
 	debug_print_P(PSTR("\n"));
 	debug_print_P(PSTR("Temp: "));
 	debug->buffer = dtostrf(lps25->temperature, 3, 2, debug->buffer);
 	debug_print(NULL);
 	debug_print_P(PSTR("\n"));
-	debug_print_P(PSTR("Reg PRESSOUT: "));
-	/* MSB */
-	sprintf(debug->buffer, "%#02x", lps25->PRESS_OUT[2]);
+	// POUT
+	debug_print_P(PSTR("POUT: "));
+	sprintf(debug->buffer, "%#02x", lps25->PO[3]);
 	debug_print(NULL);
-	sprintf(debug->buffer, "%02x", lps25->PRESS_OUT[1]);
+	sprintf(debug->buffer, "%02x", lps25->PO[2]);
 	debug_print(NULL);
-	sprintf(debug->buffer, "%02x\n", lps25->PRESS_OUT[0]);
+	sprintf(debug->buffer, "%02x", lps25->PO[1]);
 	debug_print(NULL);
-	debug_print_P(PSTR("Reg TEMPOUT: "));
-	/* MSB */
-	sprintf(debug->buffer, "%#02x", lps25->TEMP_OUT[1]);
+	sprintf(debug->buffer, "%02x\n", lps25->PO[0]);
 	debug_print(NULL);
-	sprintf(debug->buffer, "%02x\n", lps25->TEMP_OUT[0]);
+	// TOUT
+	debug_print_P(PSTR("TOUT: "));
+	sprintf(debug->buffer, "%#04x\n\n", lps25->TOUT);
 	debug_print(NULL);
-	debug_print_P(PSTR("\n"));
 }
 
 int main(void)
@@ -65,12 +64,10 @@ int main(void)
 	buzz_init();
 	sei();
 
-	if (!lps25_init()) {
-		beep(2500);
-	} else {
-		beep(1000);
-		beep(1000);
-	}
+	if (lps25_init())
+		beep(10);
+	else
+		beep(2);
 
 	if (lps25_oneshot())
 		debug_print_P(PSTR("ERROR\n"));
@@ -84,6 +81,7 @@ int main(void)
 		if (bit_is_set(PINC, PC0)) {
 			lps25_pressure();
 			lps25_temperature();
+			beep((int8_t)((-lps25->dHpa) * 8.3));
 			print_lps25();
 		}
 	}

@@ -25,19 +25,20 @@
 int main(void)
 {
 	buzz_init();
-
 	sei();
 
-	if (lps25_init()) {
-		beep(2500);
-		beep(2500);
-	} else {
-		beep(2500);
-	}
+	if (lps25_init())
+		beep(10);
+	else
+		beep(2);
+
+	lps25_fifo_mean_mode();
 
 	while(1) {
-		_delay_ms(1000);
-		beep(2000);
+		if (bit_is_set(PINB, PB4)) {
+			lps25_pressure();
+			beep((int8_t)((-lps25->dHpa) * 8.3));
+		}
 	}
 
 	return(0);

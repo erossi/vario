@@ -109,8 +109,16 @@ struct lps25_t {
 	float temperature;
 	float Hpa;
 	float dHpa;
-	uint8_t *TEMP_OUT;
-	uint8_t *PRESS_OUT;
+
+	union {
+		uint8_t PO[4];
+		uint32_t POUT;
+	};
+
+	union {
+		uint8_t TO[2];
+		int16_t TOUT;
+	};
 };
 
 /* globals */
