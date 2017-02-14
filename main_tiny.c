@@ -27,6 +27,11 @@ int main(void)
 	buzz_init();
 	sei();
 
+	/* wait for the capacitor to charge and set the
+	 * coorect i2c address (0.5 sec).
+	 */
+	_delay_ms(1000);
+
 	if (lps25_init())
 		beep(10);
 	else
