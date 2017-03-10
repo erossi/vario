@@ -44,13 +44,8 @@ void usart_resume(const uint8_t port)
 	usart->tx0Idx = 0;
 	usart->tx0_buffer[0] = 0;
 
-	/* improve baud rate error by using 2x clk */
-#if F_CPU < 2000000UL && defined(U2X0)
-	UCSR0A = _BV(U2X0);
-	UBRR0L = (F_CPU / (8UL * USART0_BAUD)) - 1;
-#else
-	UBRR0L = (F_CPU / (16UL * USART0_BAUD)) - 1;
-#endif
+	/* Arduino fixed 115200 */
+	UBRR0L = 8;
 
 	/*! tx enable, 8n1 */
 	UCSR0C = _BV(UCSZ00) | _BV(UCSZ01);
