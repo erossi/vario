@@ -17,10 +17,12 @@ PRG_NAME = vario
 # space opt
 OPTLEV = s
 
-#default to arduino for now
+# Platforms:
+# - arduino (default)
+# - attiny85 (3.3V @8Mhz)
+# - attiny85v (1.8V @1Mhz)
 ifndef PLATFORM
 PLATFORM = arduino
-# PLATFORM = attiny85
 endif
 
 ## Microcontroller definition
@@ -30,9 +32,14 @@ endif
 ifeq ($(PLATFORM), arduino)
 	MCU = atmega328p
 	FCPU = 16000000UL
-else
+else ifeq ($(PLATFORM), attiny85)
 	MCU = $(PLATFORM)
 	FCPU = 8000000UL
+else ifeq ($(PLATFORM), attiny85v)
+	MCU = attiny85
+	FCPU = 1000000UL
+else
+$(error	unsupported platform)
 endif
 
 PWD = $(shell pwd)
@@ -46,7 +53,7 @@ endif
 
 LFLAGS = -lm
 
-# Uncomment if git is in use
+# git version
 GIT_TAG = "$(shell git describe --tags --long --always)"
 PRGNAME = $(PRG_NAME)_$(GIT_TAG)_$(MCU)
 ELFNAME = $(PRGNAME)_$@
@@ -82,7 +89,8 @@ else
 all_obj = USI_TWI_Master.o lps25.o buzz.o
 endif
 
-test_all_obj =
+test_fifo_mean_obj = i2c.o lps25.o usart.o debug.o
+test_lps_obj = i2c.o lps25.o usart.o debug.o logit.o
 
 .PHONY: clean indent
 .SILENT: help
@@ -103,8 +111,16 @@ endif
 
 	$(OBJCOPY) $(PRGNAME).elf $(PRGNAME).hex
 
-test: USI_TWI_Master.o
+test_usi: USI_TWI_Master.o
 	$(CC) $(CFLAGS) -o $(PRGNAME).elf test_usi.c USI_TWI_Master.o $(LFLAGS)
+	$(OBJCOPY) $(PRGNAME).elf $(PRGNAME).hex
+
+test_lps: $(test_lps_obj)
+	$(CC) $(CFLAGS) -o $(PRGNAME).elf test_lps25.c $(test_lps_obj) $(LFLAGS)
+	$(OBJCOPY) $(PRGNAME).elf $(PRGNAME).hex
+
+test_fifo_mean: $(test_fifo_mean_obj)
+	$(CC) $(CFLAGS) -o $(PRGNAME).elf test_fifo_mean.c $(test_fifo_mean_obj) $(LFLAGS)
 	$(OBJCOPY) $(PRGNAME).elf $(PRGNAME).hex
 
 programstk:

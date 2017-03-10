@@ -1,6 +1,6 @@
 /*
     LPS25H STMicroelectronics MEMS pressure sensor.
-    Copyright (C) 2016 Enrico Rossi
+    Copyright (C) 2016, 2017 Enrico Rossi
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -103,7 +103,7 @@ uint8_t register_write(const uint8_t reg, const uint8_t value)
  *
  * RES_CONF(0x10) = 0x05 (set AVGT=16, AVGP=32, or less)
  *  Pressure 32 sample average,
- *  Temperature 16 sample average.
+ *  Temperature 8 sample average (unused).
  *
  * FIFO_CTRL (0x2E) = 0xC1 (Set FIFO Mean mode with average
  * on 2 samples or more, up to 0xDF)
@@ -116,17 +116,23 @@ uint8_t register_write(const uint8_t reg, const uint8_t value)
  */
 void lps25_fifo_mean_mode(void)
 {
+	/* average Hpa 128 samples */
 	register_write(LPS25_RES_CONF,
-			(1 << LPS25_AVGT0) | (1 << LPS25_AVGP0));
+			(1 << LPS25_AVGP1) | (0 << LPS25_AVGP0));
+	/* FIFO_MEAN MODE: 8 samples */
 	register_write(LPS25_FIFO_CTRL,
-			(1 << LPS25_F_MODE1) | (1 << LPS25_F_MODE2) |
+			(1 << LPS25_F_MODE2) | (1 << LPS25_F_MODE1) |
+			(1 << LPS25_WTM_POINT2) | (1 << LPS25_WTM_POINT1) |
 			(1 << LPS25_WTM_POINT0));
+	/* enable fifo */
 	register_write(LPS25_CTRL_REG2,
 			(1 << LPS25_FIFO_EN));
-	register_write(LPS25_CTRL_REG1,
-			(1 << LPS25_PD) | (1 << LPS25_ODR0));
+	/* enable IRQ */
 	register_write(LPS25_CTRL_REG4,
 			(1 << LPS25_P1_DRDY));
+	/* ODR 7Hz */
+	register_write(LPS25_CTRL_REG1,
+			(1 << LPS25_PD) | (1 << LPS25_ODR0));
 }
 
 /* Update the temperature.
