@@ -23,43 +23,33 @@
 #include "buzz.h"
 #include "debug.h"
 
-void print_lps25(void)
+void print_lps25_hpa(void)
 {
-	debug_print_P(PSTR("Hpa: "));
 	debug->buffer = dtostrf(lps25->Hpa, 5, 2, debug->buffer);
 	debug_print(NULL);
-	debug_print_P(PSTR("\n"));
-	debug_print_P(PSTR("dHpa: "));
+	debug_print_P(PSTR(" "));
 	debug->buffer = dtostrf(lps25->dHpa, 5, 2, debug->buffer);
 	debug_print(NULL);
-	debug_print_P(PSTR("\n"));
-	/* Test delta-meters, 1hPa = 8.3 meters */
-	debug_print_P(PSTR("dmt: "));
-	debug->buffer = dtostrf(((-lps25->dHpa) * 8.3), 5, 2, debug->buffer);
+	debug_print_P(PSTR(" "));
+	debug->buffer = dtostrf(((-lps25->dHpa) * 100), 5, 2, debug->buffer);
 	debug_print(NULL);
 	debug_print_P(PSTR("\n"));
-	debug_print_P(PSTR("Temp: "));
-	debug->buffer = dtostrf(lps25->temperature, 3, 2, debug->buffer);
-	debug_print(NULL);
-	debug_print_P(PSTR("\n"));
-	// POUT
-	debug_print_P(PSTR("POUT: "));
-	sprintf(debug->buffer, "%#02x", lps25->PO[3]);
-	debug_print(NULL);
-	sprintf(debug->buffer, "%02x", lps25->PO[2]);
-	debug_print(NULL);
-	sprintf(debug->buffer, "%02x", lps25->PO[1]);
-	debug_print(NULL);
-	sprintf(debug->buffer, "%02x\n", lps25->PO[0]);
-	debug_print(NULL);
-	// TOUT
-	debug_print_P(PSTR("TOUT: "));
-	sprintf(debug->buffer, "%#04x\n\n", lps25->TOUT);
-	debug_print(NULL);
+}
+
+void beep(uint8_t i)
+{
+	do {
+		buzz_play(3000, 50);
+		_delay_ms(200);
+		buzz_stop();
+		_delay_ms(200);
+	} while (--i);
 }
 
 int main(void)
 {
+	int8_t dms;
+
 	debug_init();
 	buzz_init();
 	sei();
@@ -69,20 +59,22 @@ int main(void)
 	else
 		beep(2);
 
-	if (lps25_oneshot())
-		debug_print_P(PSTR("ERROR\n"));
-	else
-		print_lps25();
-
 	lps25_fifo_mean_mode();
-	// lps25_resume();
 
 	while(1) {
 		if (bit_is_set(PINC, PC0)) {
 			lps25_pressure();
-			lps25_temperature();
-			beep((int8_t)((-lps25->dHpa) * 8.3));
-			print_lps25();
+			/* 1hPa = 8.3m = 83dm */
+			// 1m/s = 1/8.3 hPa/s = 0.12 hPa/s
+			/* 7Hz dms */
+			dms = (-lps25->dHpa) * 100;
+
+			if ((dms > 5) || (dms < -5))
+				buzz_play((3000 + dms * 10), 50);
+			else
+				buzz_stop();
+
+			print_lps25_hpa();
 		}
 	}
 

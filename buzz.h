@@ -23,4 +23,3 @@ void buzz_play(const uint16_t freq, const uint8_t duty);
 void buzz_stop(void);
 void buzz_init(void);
 void buzz_shut(void);
-void beep(int8_t meters);

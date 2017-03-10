@@ -46,11 +46,13 @@ ISR(TIMER0_OVF_vect) {
  * to play a 4 Khz wave it has to count:
  * c = 62.5Khz/4Khz = 15.6 steps
  *
- * Example for AtTiny 8Mhz CPU
- * Prescaler = 64
+ * Example for AtTiny:
+ * 8Mhz CPU Prescaler = 64
+ * 1Mhz CPU Prescaler = 8
  * Fstep = 125Khz
  * to play a 4Khz wave it has to count:
  * c = 125Khz/4Khz = 31.25 steps
+ *
  *                    _         _
  * Duty 90% = _______| |_______| |
  *            COMPB--^ ^--OVF
@@ -62,22 +64,32 @@ void buzz_play(const uint16_t freq, const uint8_t duty)
 {
 	uint8_t c;
 
-#ifdef ARDUINO
-	c = (uint8_t)(62500/freq);
-	OCR0A = c;
-	OCR0B = (uint8_t)(c*duty/100);
-	/* Clear counter */
-	TCNT0 = 0x00;
-	/* prescaler */
-	TCCR0B |= _BV(CS02);
-#else
+#if (F_CPU == 1000000UL)
 	c = (uint8_t)(125000/freq);
 	OCR0A = c;
 	OCR0B = (uint8_t)(c*duty/100);
 	/* Clear counter */
 	TCNT0 = 0x00;
-	/* prescaler FCPU/64 */
+	/* Start with prescaler 8 */
+	TCCR0B |= _BV(CS01);
+#elif (F_CPU == 8000000UL)
+	c = (uint8_t)(125000/freq);
+	OCR0A = c;
+	OCR0B = (uint8_t)(c*duty/100);
+	/* Clear counter */
+	TCNT0 = 0x00;
+	/* Start with prescaler 64 */
 	TCCR0B |= _BV(CS01) | _BV(CS00);
+#elif (F_CPU == 16000000UL)
+	c = (uint8_t)(62500/freq);
+	OCR0A = c;
+	OCR0B = (uint8_t)(c*duty/100);
+	/* Clear counter */
+	TCNT0 = 0x00;
+	/* Start with prescaler 256 */
+	TCCR0B |= _BV(CS02);
+#else
+#error Counter clock rate unsupported
 #endif
 }
 
@@ -136,33 +148,4 @@ void buzz_shut(void)
 	OCR0B = 0;
 	DDRB &= ~_BV(PB1);
 #endif
-}
-
-void beep(int8_t mts)
-{
-	uint16_t msec, j, freq;
-
-	if (mts > 10)
-		mts = 10;
-
-	if (mts > 0) {
-		freq = 1500 + mts * 100;
-		msec = 500/mts;
-
-		while (mts--) {
-			j = msec;
-			buzz_play(freq, 50);
-
-			while (j--)
-				_delay_ms(1);
-
-			buzz_stop();
-			j = msec;
-
-			while (j--)
-				_delay_ms(1);
-		}
-	} else {
-		_delay_ms(1000);
-	}
 }
