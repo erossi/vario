@@ -119,9 +119,10 @@ void lps25_fifo_mean_mode(void)
 	/* average Hpa 128 samples */
 	register_write(LPS25_RES_CONF,
 			(1 << LPS25_AVGP1) | (0 << LPS25_AVGP0));
-	/* FIFO_MEAN MODE: 8 samples */
+	/* FIFO_MEAN MODE: 16 samples moving average */
 	register_write(LPS25_FIFO_CTRL,
 			(1 << LPS25_F_MODE2) | (1 << LPS25_F_MODE1) |
+			(0 << LPS25_WTM_POINT4) | (1 << LPS25_WTM_POINT3) |
 			(1 << LPS25_WTM_POINT2) | (1 << LPS25_WTM_POINT1) |
 			(1 << LPS25_WTM_POINT0));
 	/* enable fifo */
@@ -132,7 +133,7 @@ void lps25_fifo_mean_mode(void)
 			(1 << LPS25_P1_DRDY));
 	/* ODR 7Hz */
 	register_write(LPS25_CTRL_REG1,
-			(1 << LPS25_PD) | (1 << LPS25_ODR0));
+			(1 << LPS25_PD) | (1 << LPS25_ODR1) | (0 << LPS25_ODR0));
 }
 
 /* Update the temperature.

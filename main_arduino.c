@@ -1,4 +1,4 @@
-/* Copyright (C) 2016 Enrico Rossi
+/* Copyright (C) 2016, 2017 Enrico Rossi
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -23,6 +23,10 @@
 #include "buzz.h"
 #include "debug.h"
 
+/* 1mt O2 15C = 0.12hPa
+ *
+ */
+
 void print_lps25_hpa(void)
 {
 	debug->buffer = dtostrf(lps25->Hpa, 5, 2, debug->buffer);
@@ -31,7 +35,7 @@ void print_lps25_hpa(void)
 	debug->buffer = dtostrf(lps25->dHpa, 5, 2, debug->buffer);
 	debug_print(NULL);
 	debug_print_P(PSTR(" "));
-	debug->buffer = dtostrf(((-lps25->dHpa) * 100), 5, 2, debug->buffer);
+	debug->buffer = dtostrf(((-lps25->dHpa) * 50), 5, 2, debug->buffer);
 	debug_print(NULL);
 	debug_print_P(PSTR("\n"));
 }
@@ -54,6 +58,11 @@ int main(void)
 	buzz_init();
 	sei();
 
+	/* wait for the capacitor to charge and set the
+	 * coorect i2c address (0.5 sec).
+	 */
+	_delay_ms(1000);
+
 	if (lps25_init())
 		beep(10);
 	else
@@ -64,10 +73,10 @@ int main(void)
 	while(1) {
 		if (bit_is_set(PINC, PC0)) {
 			lps25_pressure();
-			/* 1hPa = 8.3m = 83dm */
+			// 1hPa = 8.3m
 			// 1m/s = 1/8.3 hPa/s = 0.12 hPa/s
-			/* 7Hz dms */
-			dms = (-lps25->dHpa) * 100;
+			// 7Hz dms rounded to 0.02 hPa @7Hz
+			dms = (-lps25->dHpa) * 500;
 
 			if ((dms > 5) || (dms < -5))
 				buzz_play((3000 + dms * 10), 50);
