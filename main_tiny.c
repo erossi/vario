@@ -63,8 +63,8 @@ int main(void)
 			// 7Hz dms rounded to 0.02 hPa @7Hz
 			dms = (-lps25->dHpa) * 500;
 
-			if ((dms > 5) || (dms < -5))
-				buzz_play((3000 + dms * 10), 50);
+			if ((dms > 5) || (dms < -25))
+				buzz_play((4000 + dms * 10), 50);
 			else
 				buzz_stop();
 		}
