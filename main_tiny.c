@@ -18,6 +18,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <avr/interrupt.h>
+#include <avr/sleep.h>
 #include <util/delay.h>
 #include "lps25.h"
 #include "buzz.h"
@@ -25,6 +26,23 @@
 /* 1mt O2 15C = 0.12hPa
  *
  */
+
+/* global */
+volatile int8_t dms;
+// volatile uint8_t button;
+
+/*! IRQ int4 PB4 data ready
+ */
+ISR(INT0_vect)
+{
+	if (bit_is_set(PINB, PB4)) {
+		lps25_pressure();
+		// 1hPa = 8.3m
+		// 1m/s = 1/8.3 hPa/s = 0.12 hPa/s
+		// 7Hz dms rounded to 0.02 hPa @7Hz
+		dms = (-lps25->dHpa) * 500;
+	}
+}
 
 void beep(uint8_t i)
 {
@@ -38,14 +56,13 @@ void beep(uint8_t i)
 
 int main(void)
 {
-	int8_t dms;
 	uint8_t i;
 
+	i = FALSE;
 	buzz_init();
-	sei();
 
 	/* wait for the capacitor to charge and set the
-	 * coorect i2c address (0.5 sec).
+	 * correct i2c address (0.5 sec).
 	 */
 	_delay_ms(1000);
 
@@ -55,23 +72,29 @@ int main(void)
 		beep(2);
 
 	lps25_fifo_mean_mode();
-	i = 0;
+	// configure IRQ
+	GIMSK |= (1 << PCIE);   // pin change interrupt enable
+	PCMSK |= (1 << PCINT4); // pin change interrupt enabled for PCINT4
+
+	// Set sleep mode
+	set_sleep_mode(SLEEP_MODE_IDLE);
+	sei();
 
 	while(1) {
-		if (bit_is_set(PINB, PB4)) {
-			lps25_pressure();
-			// 1hPa = 8.3m
-			// 1m/s = 1/8.3 hPa/s = 0.12 hPa/s
-			// 7Hz dms rounded to 0.02 hPa @7Hz
-			dms = (-lps25->dHpa) * 500;
+		/*
+		 * start sleep procedure
+		 */
+		sleep_enable();
+		sleep_cpu();
+		sleep_disable();
 
-			if (((dms > 5) || (dms < -25)) && !i) {
-				buzz_play((4000 + dms * 10), 50);
-				i = 1;
-			} else {
-				buzz_stop();
-				i = 0;
-			}
+		if (((dms > 5) || (dms < -25))) {
+			buzz_play((4000 + dms * 10), 50);
+			i = TRUE;
+			_delay_ms(100);
+		} else {
+			buzz_stop();
+			i = FALSE;
 		}
 	}
 
