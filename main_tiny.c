@@ -39,6 +39,7 @@ void beep(uint8_t i)
 int main(void)
 {
 	int8_t dms;
+	uint8_t i;
 
 	buzz_init();
 	sei();
@@ -54,6 +55,7 @@ int main(void)
 		beep(2);
 
 	lps25_fifo_mean_mode();
+	i = 0;
 
 	while(1) {
 		if (bit_is_set(PINB, PB4)) {
@@ -63,10 +65,13 @@ int main(void)
 			// 7Hz dms rounded to 0.02 hPa @7Hz
 			dms = (-lps25->dHpa) * 500;
 
-			if ((dms > 5) || (dms < -25))
+			if (((dms > 5) || (dms < -25)) && !i) {
 				buzz_play((4000 + dms * 10), 50);
-			else
+				i = 1;
+			} else {
 				buzz_stop();
+				i = 0;
+			}
 		}
 	}
 
