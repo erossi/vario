@@ -33,15 +33,10 @@ volatile int8_t dms;
 
 /*! IRQ int4 PB4 data ready
  */
-ISR(INT0_vect)
+ISR(PCINT0_vect)
 {
-	if (bit_is_set(PINB, PB4)) {
+	if (bit_is_set(PINB, PB4))
 		lps25_pressure();
-		// 1hPa = 8.3m
-		// 1m/s = 1/8.3 hPa/s = 0.12 hPa/s
-		// 7Hz dms rounded to 0.02 hPa @7Hz
-		dms = (-lps25->dHpa) * 500;
-	}
 }
 
 void beep(uint8_t i)
@@ -56,9 +51,9 @@ void beep(uint8_t i)
 
 int main(void)
 {
-	uint8_t i;
+	uint8_t mute;
 
-	i = FALSE;
+	mute = TRUE;
 	buzz_init();
 
 	/* wait for the capacitor to charge and set the
@@ -71,7 +66,9 @@ int main(void)
 	else
 		beep(2);
 
+	// This will generate an IRQ before we can serve it.
 	lps25_fifo_mean_mode();
+
 	// configure IRQ
 	GIMSK |= (1 << PCIE);   // pin change interrupt enable
 	PCMSK |= (1 << PCINT4); // pin change interrupt enabled for PCINT4
@@ -79,6 +76,10 @@ int main(void)
 	// Set sleep mode
 	set_sleep_mode(SLEEP_MODE_IDLE);
 	sei();
+
+	// serve the 1st IRQ
+	if (bit_is_set(PINB, PB4))
+		lps25_pressure();
 
 	while(1) {
 		/*
@@ -88,13 +89,18 @@ int main(void)
 		sleep_cpu();
 		sleep_disable();
 
-		if (((dms > 5) || (dms < -25))) {
+		// 1hPa = 8.3m
+		// 1m/s = 1/8.3 hPa/s = 0.12 hPa/s
+		// 7Hz dms rounded to 0.02 hPa @7Hz
+		dms = (-lps25->dHpa) * 500;
+
+		if (((dms > 5) || (dms < -25)) && mute) {
 			buzz_play((4000 + dms * 10), 50);
-			i = TRUE;
+			mute = FALSE;
 			_delay_ms(100);
 		} else {
 			buzz_stop();
-			i = FALSE;
+			mute = TRUE;
 		}
 	}
 
