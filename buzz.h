@@ -15,6 +15,9 @@
  * If not, see <http://www.gnu.org/licenses/>.
  */
 
+#ifndef _BUZZER_H_
+#define _BUZZER_H_
+
 /*! Globals
  */
 volatile uint8_t beeps;
@@ -23,3 +26,5 @@ void buzz_play(const uint16_t freq, const uint8_t duty);
 void buzz_stop(void);
 void buzz_init(void);
 void buzz_shut(void);
+
+#endif
