@@ -74,7 +74,7 @@ DUDEUPORT = usb
 DUDEUDEV = avrispmkII
 
 # Use sudo for USB avrispmkII
-DUDE = sudo avrdude -p $(MCU) -e -U flash:w:$(PRGNAME).hex
+DUDE = sudo avrdude -p $(MCU) -e -U flash:w:$(PRGNAME).hex -F -V
 #DUDE = avrdude -p $(MCU) -e -U flash:w:$(PRGNAME).hex
 
 OBJCOPY = avr-objcopy -j .text -j .data -O ihex
