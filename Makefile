@@ -22,7 +22,7 @@ OPTLEV = s
 # - attiny85 (3.3V @8Mhz)
 # - attiny85v (1.8V @1Mhz)
 ifndef PLATFORM
-PLATFORM = arduino
+	PLATFORM = arduino
 endif
 
 ## Microcontroller definition
@@ -53,7 +53,8 @@ endif
 
 LFLAGS = -lm
 
-# git version
+## git version
+#
 GIT_TAG = "$(shell git describe --tags --long --always)"
 PRGNAME = $(PRG_NAME)_$(GIT_TAG)_$(MCU)
 ELFNAME = $(PRGNAME)_$@
@@ -61,21 +62,23 @@ ELFNAME = $(PRGNAME)_$@
 AR = avr-ar
 CC = avr-gcc
 
-# Arduino
-DUDEAPORT = /dev/ttyACM0
-DUDEADEV = arduino
-
-# Stk500v2
-DUDESPORT = /dev/ttyUSB0
-DUDESDEV = stk500v2
-
-# avrispmkII
-DUDEUPORT = usb
-DUDEUDEV = avrispmkII
-
+## Program DUDE
+#
 # Use sudo for USB avrispmkII
-DUDE = sudo avrdude -p $(MCU) -e -U flash:w:$(PRGNAME).hex -F -V
-#DUDE = avrdude -p $(MCU) -e -U flash:w:$(PRGNAME).hex
+#
+ifeq ($(PLATFORM), arduino)
+	DUDEPORT = /dev/ttyACM0
+	DUDEDEV = arduino
+	DUDE = avrdude -p $(MCU) -e -U flash:w:$(PRGNAME).hex
+else ifeq ($(PLATFORM), attiny85)
+	DUDEPORT = usb
+	DUDEDEV = avrispmkII
+	DUDE = sudo avrdude -p $(MCU) -e -U flash:w:$(PRGNAME).hex -V
+else
+	DUDEPORT = usb
+	DUDEDEV = avrispmkII
+	DUDE = sudo avrdude -p $(MCU) -e -U flash:w:$(PRGNAME).hex -V -F
+endif
 
 OBJCOPY = avr-objcopy -j .text -j .data -O ihex
 OBJDUMP = avr-objdump
@@ -123,15 +126,8 @@ test_fifo_mean: $(test_fifo_mean_obj)
 	$(CC) $(CFLAGS) -o $(PRGNAME).elf test_fifo_mean.c $(test_fifo_mean_obj) $(LFLAGS)
 	$(OBJCOPY) $(PRGNAME).elf $(PRGNAME).hex
 
-programstk:
-	$(DUDE) -c $(DUDESDEV) -P $(DUDESPORT)
-
 program:
-ifeq ($(PLATFORM), arduino)
-	$(DUDE) -c $(DUDEADEV) -P $(DUDEAPORT)
-else
-	$(DUDE) -c $(DUDEUDEV) -P $(DUDEUPORT)
-endif
+	$(DUDE) -c $(DUDEDEV) -P $(DUDEPORT)
 
 ## CleanUp and tools
 #
