@@ -19,6 +19,7 @@
 #include <stdio.h>
 #include <avr/interrupt.h>
 #include <avr/sleep.h>
+#include <avr/wdt.h>
 #include <util/delay.h>
 #include "lps25.h"
 #include "buzz.h"
@@ -27,7 +28,10 @@
  *
  */
 
-/* global */
+/* globals
+ * dms is Deci Meters per Second altitude change.
+ * ex. dms = 10 -> 1 m/s climbing up
+ */
 volatile int8_t dms;
 // volatile uint8_t button;
 
@@ -39,6 +43,18 @@ ISR(PCINT0_vect)
 		lps25_pressure();
 }
 
+/*! IRQ Watchdog vector
+ */
+ISR(WDT_vect)
+{
+	if (bit_is_set(PINB, PB4))
+		lps25_pressure();
+}
+
+/*! Single tone beep
+ *
+ * Used during initialization.
+ */
 void beep(uint8_t i)
 {
 	do {
@@ -49,21 +65,33 @@ void beep(uint8_t i)
 	} while (--i);
 }
 
+/*! Main
+ *
+ * \note: There is the possibility that
+ * the voltage is lower than 1.8V where the
+ * MCU is powered but the sensor is not.
+ */
 int main(void)
 {
-	uint8_t mute;
+	uint8_t mute = TRUE;
 
-	mute = TRUE;
-	buzz_init();
+	// Disable Watchdog (not cleared on reset)
+	wdt_disable();
 
-	/* wait for the capacitor to charge and set the
-	 * correct i2c address (0.5 sec).
+	/* wait for the capacitor to charge and
+	 * the I2C sensor to be ready (0.5s).
 	 */
 	_delay_ms(1000);
 
+	// Initialize the buzzer
+	buzz_init();
+
+	// Initialize the I2C sensor.
 	if (lps25_init())
+		// Error
 		beep(10);
 	else
+		// Ok
 		beep(2);
 
 	// This will generate an IRQ before we can serve it.
@@ -75,19 +103,24 @@ int main(void)
 
 	// Set sleep mode
 	set_sleep_mode(SLEEP_MODE_IDLE);
+
+	// Enable watchdog before IRQ, every second
+	wdt_enable(WDTO_1S);
+
 	sei();
 
-	// serve the 1st IRQ
+	// check if an IRQ has been missed.
 	if (bit_is_set(PINB, PB4))
 		lps25_pressure();
 
 	while(1) {
-		/*
-		 * start sleep procedure
-		 */
+		// start sleep procedure
 		sleep_enable();
 		sleep_cpu();
 		sleep_disable();
+
+		// Reset the watchdog
+		wdt_reset();
 
 		// 1hPa = 8.3m
 		// 1m/s = 1/8.3 hPa/s = 0.12 hPa/s
