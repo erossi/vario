@@ -115,6 +115,8 @@ int main(void)
 
 	while(1) {
 		// start sleep procedure
+		// Wakeup 7 times/sec. depending on
+		// the sensor number of samples per second.
 		sleep_enable();
 		sleep_cpu();
 		sleep_disable();
@@ -127,9 +129,24 @@ int main(void)
 		// 7Hz dms rounded to 0.02 hPa @7Hz
 		dms = (-lps25->dHpa) * 500;
 
+		/* About sound:
+		 * STATE -> UP, DOWN, FLAT
+		 *  UP: beep with changing in freq and period.
+		 *  DOWN: sound changing only in freq continuosly.
+		 *  FLAT: no sound.
+		 *
+		 * BEEPS: number of wakeups the sound should continue.
+		 *  If 7Hz -> +1ms = 3 cycle sound and 3 cycle no sound.
+		 *  Left 1 cycle -> who cares.
+		 *  note: if sleep stop sound, then all this is useless.
+		 */
 		if (((dms > 5) || (dms < -25)) && mute) {
 			buzz_play((4000 + dms * 10), 50);
 			mute = FALSE;
+			// FIXME
+			// if sleep stop sound then the
+			// software should be delayed here for the
+			// amount of time it is suppose to beep.
 			_delay_ms(100);
 		} else {
 			buzz_stop();
