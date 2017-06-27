@@ -143,11 +143,6 @@ int main(void)
 		if (((dms > 5) || (dms < -25)) && mute) {
 			buzz_play((4000 + dms * 10), 50);
 			mute = FALSE;
-			// FIXME
-			// if sleep stop sound then the
-			// software should be delayed here for the
-			// amount of time it is suppose to beep.
-			_delay_ms(100);
 		} else {
 			buzz_stop();
 			mute = TRUE;
