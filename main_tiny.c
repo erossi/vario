@@ -104,14 +104,25 @@ int main(void)
 	// Set sleep mode
 	set_sleep_mode(SLEEP_MODE_IDLE);
 
-	// Enable watchdog before IRQ, every second
-	wdt_enable(WDTO_1S);
+	_delay_ms(500);
 
+	// Enable watchdog before IRQ, every second
+	// note: IRQ wdt is unsupported by avr-libc
+	//wdt_enable(WDTO_1S);
+
+	// Reset the watchdog
+	wdt_reset();
+	// Unlock the security 1 WDT change.
+	WDTCR = (1<<WDCE)|(1<<WDE);
+	// WDT in IRQ @ 1sec.
+	WDTCR = (1<<WDIE) | (1<<WDP2) | (1<<WDP1);
+
+	//Enable global interrupts
 	sei();
 
 	// check if an IRQ has been missed.
-	if (bit_is_set(PINB, PB4))
-		lps25_pressure();
+	///if (bit_is_set(PINB, PB4))
+	///	lps25_pressure();
 
 	while(1) {
 		// start sleep procedure
