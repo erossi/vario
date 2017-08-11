@@ -50,8 +50,9 @@ ISR(PCINT0_vect)
 {
 	// Switch pressed
 	if (bit_is_clear(PINB, PB3))
-		_delay_ms(10000); // Watchdog trigger.
+		lps25_pressure();
 
+	// Int 4
 	if (bit_is_set(PINB, PB4))
 		lps25_pressure();
 }
