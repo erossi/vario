@@ -87,8 +87,12 @@ void beep(uint8_t i)
 int main(void)
 {
 	uint8_t mute = TRUE;
+	uint8_t err;
 
 	// Disable Watchdog (not cleared on reset)
+	//
+	// \note: maybe it is to late here, need to be
+	// disabled in the .init() section.
 	wdt_disable();
 
 	/* wait for the capacitor to charge and
@@ -100,28 +104,25 @@ int main(void)
 	buzz_init();
 
 	// Initialize the I2C sensor.
-	if (lps25_init())
-		// Error
-		beep(10);
-	else
-		// Ok
-		beep(2);
-
-	// This will generate an IRQ before we can serve it.
-	lps25_fifo_mean_mode();
+	if (lps25_init()) {
+		err = TRUE;
+	} else {
+		lps25_fifo_mean_mode();
+		err = FALSE;
+	}
 
 	// configure IRQ
 	GIMSK |= (1 << PCIE);   // pin change interrupt enable
-	PCMSK |= (1 << PCINT4); // pin change interrupt enabled for PCINT4
+	PCMSK |= (1 << PCINT4) | (1 << PCINT3); // IRQ ena PB4 and PB3
 
 	// Set sleep mode
 	set_sleep_mode(SLEEP_MODE_IDLE);
 
-	_delay_ms(500);
-
 	// Enable watchdog before IRQ, every second
 	// note: IRQ wdt is unsupported by avr-libc
-	//wdt_enable(WDTO_1S);
+	//
+	// Enable Reset watchdog
+	//wdt_enable(WDTO_4S);
 
 	// Reset the watchdog
 	wdt_reset();
@@ -133,9 +134,15 @@ int main(void)
 	//Enable global interrupts
 	sei();
 
-	// check if an IRQ has been missed.
-	///if (bit_is_set(PINB, PB4))
-	///	lps25_pressure();
+	beep(1);
+
+	if (err)
+		beep(5);
+
+	// Clear the IRQ if missed for
+	// whatever reason (safeguard)
+	if (bit_is_set(PINB, PB4))
+		lps25_pressure();
 
 	while(1) {
 		// start sleep procedure
