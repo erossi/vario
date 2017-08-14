@@ -9,7 +9,7 @@
 *.pch
 
 # Libraries
-*.lib
+#*.lib
 *.a
 *.la
 *.lo
@@ -30,3 +30,6 @@
 
 # Debug files
 *.dSYM/
+
+# Backup files
+*.bak
