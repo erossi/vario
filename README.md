@@ -14,8 +14,8 @@ Please file a bug or send me an email if something need to be added/removed, tha
 
 ### ToDo
 
-se il device si inizializza male, es quando la tensione sale lentamente, allora resta bloccato fino a reset, che non essendo collegato non funziona.
-- pulsante a reset, e resetta tutti i device
+If the device or the sensor do not initialize correctly, it will be blocked until a reset occurs and there is no reset connected!
+- change the switch to drive the LDO to the power out.
 
 ### example of I2C init sequence
 s - start
